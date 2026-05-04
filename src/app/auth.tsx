@@ -15,23 +15,21 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null);
 
+function getInitialToken(): string | null {
+  const params = new URLSearchParams(window.location.search);
+  const t = params.get("token");
+  if (t) {
+    localStorage.setItem("token", t);
+    window.history.replaceState({}, "", window.location.pathname);
+    return t;
+  }
+  return localStorage.getItem("token");
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
+  const [token, setToken] = useState<string | null>(getInitialToken);
   const [user, setUser] = useState<UserResponse | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Capture token from OAuth callback (?token=...)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const t = params.get("token");
-    if (t) {
-      localStorage.setItem("token", t);
-      setToken(t);
-      // Clean token from URL without a history entry
-      const clean = window.location.pathname;
-      window.history.replaceState({}, "", clean);
-    }
-  }, []);
 
   // Fetch user whenever token changes
   useEffect(() => {
