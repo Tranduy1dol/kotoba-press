@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useNavigate, useLocation, Routes, Route } from "react-router";
 import { LoginPage } from "./components/login";
 import { HomePage } from "./components/home";
 import { LearnPage } from "./components/learn";
@@ -7,11 +7,28 @@ import { ProfilePage } from "./components/profile";
 import { AdminPage } from "./components/admin";
 import { useAuth } from "./auth";
 
-type Route = "home" | "learn" | "test" | "profile" | "admin";
+type RouteId = "home" | "learn" | "test" | "profile" | "admin";
+
+const ROUTE_PATHS: Record<RouteId, string> = {
+  home: "/",
+  learn: "/learn",
+  test: "/test",
+  profile: "/profile",
+  admin: "/admin",
+};
+
+function pathToRouteId(pathname: string): RouteId {
+  const entry = Object.entries(ROUTE_PATHS).find(([, p]) => p === pathname);
+  return (entry?.[0] as RouteId) ?? "home";
+}
 
 export default function App() {
   const { user, loading, logout } = useAuth();
-  const [route, setRoute] = useState<Route>("home");
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  const route = pathToRouteId(pathname);
+  const setRoute = (id: RouteId) => navigate(ROUTE_PATHS[id]);
 
   if (loading) {
     return (
@@ -31,11 +48,11 @@ export default function App() {
 
   const isAdmin = false; // role comes from backend — extend when API exposes it
 
-  const nav: { id: Route; label: string; jp: string }[] = [
+  const nav: { id: RouteId; label: string; jp: string }[] = [
     { id: "home", label: "Home", jp: "案内" },
     { id: "learn", label: "Learn", jp: "学ぶ" },
     { id: "test", label: "Test", jp: "試験" },
-    ...(isAdmin ? [{ id: "admin" as Route, label: "Admin", jp: "編集" }] : []),
+    ...(isAdmin ? [{ id: "admin" as RouteId, label: "Admin", jp: "編集" }] : []),
   ];
 
   return (
@@ -49,19 +66,15 @@ export default function App() {
         backgroundSize: "22px 22px",
       }}
     >
-      <Sidebar
-        route={route}
-        setRoute={setRoute}
-        nav={nav}
-      />
+      <Sidebar route={route} setRoute={setRoute} nav={nav} />
       <main className="flex-1 px-10 py-12 overflow-auto">
-        {route === "home" && (
-          <HomePage onGoLearn={() => setRoute("learn")} onGoTest={() => setRoute("test")} />
-        )}
-        {route === "learn" && <LearnPage />}
-        {route === "test" && <TestPage />}
-        {route === "profile" && <ProfilePage onLogout={logout} />}
-        {route === "admin" && isAdmin && <AdminPage />}
+        <Routes>
+          <Route path="/" element={<HomePage onGoLearn={() => setRoute("learn")} onGoTest={() => setRoute("test")} />} />
+          <Route path="/learn" element={<LearnPage />} />
+          <Route path="/test" element={<TestPage />} />
+          <Route path="/profile" element={<ProfilePage onLogout={logout} />} />
+          {isAdmin && <Route path="/admin" element={<AdminPage />} />}
+        </Routes>
 
         <footer className="max-w-5xl mx-auto mt-16 pt-6 border-t border-[#cdbf9d] italic text-[#7a6a45] flex justify-between" style={{ fontSize: "0.85rem" }}>
           <span>Kotoba Press · Volume I</span>
@@ -75,9 +88,9 @@ export default function App() {
 function Sidebar({
   route, setRoute, nav,
 }: {
-  route: Route;
-  setRoute: (r: Route) => void;
-  nav: { id: Route; label: string; jp: string }[];
+  route: RouteId;
+  setRoute: (r: RouteId) => void;
+  nav: { id: RouteId; label: string; jp: string }[];
 }) {
   return (
     <aside className="w-64 border-r border-[#cdbf9d] bg-[#fbf8f1] sticky top-0 self-start min-h-screen flex flex-col">
