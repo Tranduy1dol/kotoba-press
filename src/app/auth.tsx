@@ -7,7 +7,8 @@ const AUTH_URL = import.meta.env.VITE_AUTH_URL as string;
 
 function getRoleFromToken(token: string): string {
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
+    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(base64));
     return payload.role ?? "user";
   } catch {
     return "user";
@@ -51,10 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     users.me()
       .then(setUser)
-      .catch(() => {
-        // Token invalid or expired
-        localStorage.removeItem("token");
-        setToken(null);
+      .catch((err) => {
+        // Only clear token on 401 — network errors or other failures should not log the user out
+        if (err?.status === 401) {
+          localStorage.removeItem("token");
+          setToken(null);
+        }
       })
       .finally(() => setLoading(false));
   }, [token]);

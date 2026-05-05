@@ -100,7 +100,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     },
   });
   if (!res.ok) {
-    const err: AppError = await res.json().catch(() => ({ message: res.statusText, detail: "" }));
+    const err: AppError & { status: number } = {
+      ...(await res.json().catch(() => ({ message: res.statusText, detail: "" }))),
+      status: res.status,
+    };
     throw err;
   }
   if (res.status === 204) return undefined as T;
