@@ -200,7 +200,7 @@ function WordsAdmin() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-        <div className="md:col-span-1 sticky top-6">
+        <div className="md:col-span-1 sticky top-0 self-start">
           <Paper className="p-6">
             <h3 className="italic mb-4">New Word</h3>
             <Field label="Kanji" value={kanji} onChange={setKanji} />
@@ -357,7 +357,7 @@ function GrammarAdmin() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-        <div className="md:col-span-1 sticky top-6">
+        <div className="md:col-span-1 sticky top-0 self-start">
           <Paper className="p-6">
             <h3 className="italic mb-4">New Grammar</h3>
             <Field label="Pattern" value={pattern} onChange={setPattern} />
@@ -525,7 +525,7 @@ function QuestionsAdmin() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-        <div className="md:col-span-1 sticky top-6">
+        <div className="md:col-span-1 sticky top-0 self-start">
           <Paper className="p-6">
             <h3 className="italic mb-4">New Question</h3>
             <Field label="Prompt" value={prompt} onChange={setPrompt} />
@@ -713,7 +713,7 @@ function ParagraphsAdmin() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-        <div className="md:col-span-1 sticky top-6">
+        <div className="md:col-span-1 sticky top-0 self-start">
           <Paper className="p-6">
             <h3 className="italic mb-4">New Paragraph</h3>
             <Field label="Title" value={title} onChange={setTitle} />
