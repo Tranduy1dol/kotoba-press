@@ -44,7 +44,7 @@ export function TestPage() {
     return (
       <div className="max-w-2xl mx-auto">
         <header className="mb-10 text-center">
-          <h1 className="mt-2" style={{ fontSize: "3rem", lineHeight: 1.1 }}>
+          <h1 className="italic mt-2" style={{ fontSize: "3rem", lineHeight: 1.1 }}>
             Test
           </h1>
         </header>

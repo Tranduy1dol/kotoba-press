@@ -28,7 +28,7 @@ function ModeSelect({ level, setLevel, onPick }: { level: number; setLevel: (l: 
   return (
     <div className="max-w-4xl mx-auto">
       <header className="mb-10 text-center">
-        <h1 className="mt-2" style={{ fontSize: "3rem", lineHeight: 1.1 }}>
+        <h1 className="italic mt-2" style={{ fontSize: "3rem", lineHeight: 1.1 }}>
           Learn
         </h1>
       </header>
