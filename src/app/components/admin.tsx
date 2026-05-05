@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { admin as adminApi } from "../api";
-import type { WordResponse, GrammarResponse, QuestionWithAnswerResponse } from "../api";
+import type { WordResponse, GrammarResponse, QuestionWithAnswerResponse, ParagraphResponse } from "../api";
 import { Paper, Button, Tag } from "./paper";
+
+const PAGE_SIZE = 20;
 
 type Tab = "words" | "grammar" | "questions" | "paragraphs";
 
@@ -11,9 +13,7 @@ export function AdminPage() {
   return (
     <div className="max-w-5xl mx-auto">
       <header className="mb-10 text-center">
-        <h1 className="italic mt-2" style={{ fontSize: "3rem", lineHeight: 1.1 }}>
-          Admin
-        </h1>
+        <h1 className="italic mt-2" style={{ fontSize: "3rem", lineHeight: 1.1 }}>Admin</h1>
       </header>
 
       <div className="flex gap-6 border-b border-[#cdbf9d] mb-6">
@@ -36,9 +36,65 @@ export function AdminPage() {
   );
 }
 
+// ── Pagination bar ────────────────────────────────────────────────────────────
+
+function Pagination({ offset, total, limit, onChange }: {
+  offset: number; total: number; limit: number; onChange: (o: number) => void;
+}) {
+  const page = Math.floor(offset / limit);
+  const pages = Math.ceil(total / limit);
+  if (pages <= 1) return null;
+  return (
+    <div className="flex items-center justify-between mt-4 italic text-[#7a6a45]" style={{ fontSize: "0.9rem" }}>
+      <span>{offset + 1}–{Math.min(offset + limit, total)} of {total}</span>
+      <div className="flex gap-2">
+        <button
+          disabled={page === 0}
+          onClick={() => onChange(Math.max(0, offset - limit))}
+          className="px-3 py-1 border border-[#d9cfb8] disabled:opacity-40 hover:bg-[#efe6cf]"
+        >← prev</button>
+        <span className="px-3 py-1">{page + 1} / {pages}</span>
+        <button
+          disabled={page >= pages - 1}
+          onClick={() => onChange(offset + limit)}
+          className="px-3 py-1 border border-[#d9cfb8] disabled:opacity-40 hover:bg-[#efe6cf]"
+        >next →</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Detail modal ──────────────────────────────────────────────────────────────
+
+function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backgroundColor: "rgba(31,26,20,0.4)" }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#fbf8f1] border border-[#cdbf9d] p-8 max-w-lg w-full mx-4 overflow-y-auto"
+        style={{ maxHeight: "80vh" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+        <div className="mt-6 flex justify-end">
+          <Button variant="ghost" onClick={onClose}>Close</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Words ─────────────────────────────────────────────────────────────────────
+
 function WordsAdmin() {
   const [items, setItems] = useState<WordResponse[]>([]);
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<WordResponse | null>(null);
   const [kanji, setKanji] = useState("");
   const [reading, setReading] = useState("");
   const [meaning, setMeaning] = useState("");
@@ -46,17 +102,19 @@ function WordsAdmin() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    adminApi.listWords(50)
-      .then((res) => setItems(res.items ?? []))
+  const load = (o: number) => {
+    setLoading(true);
+    adminApi.listWords(PAGE_SIZE, o)
+      .then((res) => { setItems(res.items ?? []); setTotal(res.total); setOffset(o); })
       .catch(() => setError("Could not load words."))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(0); }, []);
 
   const create = async () => {
     if (!kanji || !reading) return;
-    setSaving(true);
-    setError("");
+    setSaving(true); setError("");
     try {
       const w = await adminApi.createWord({
         jlpt,
@@ -66,63 +124,97 @@ function WordsAdmin() {
       });
       setItems((prev) => [w, ...prev]);
       setKanji(""); setReading(""); setMeaning("");
-    } catch {
-      setError("Failed to create word.");
-    } finally {
-      setSaving(false);
-    }
+    } catch { setError("Failed to create word."); }
+    finally { setSaving(false); }
   };
 
   const remove = async (id: string) => {
     try {
       await adminApi.deleteWord(id);
       setItems((prev) => prev.filter((w) => w.id !== id));
-    } catch {
-      setError("Failed to delete word.");
-    }
+      if (selected?.id === id) setSelected(null);
+    } catch { setError("Failed to delete word."); }
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <Paper className="p-6 md:col-span-1">
-        <h3 className="italic mb-4">New Word</h3>
-        <Field label="Kanji" value={kanji} onChange={setKanji} />
-        <Field label="Reading" value={reading} onChange={setReading} />
-        <Field label="Meaning (en)" value={meaning} onChange={setMeaning} />
-        <div className="mb-4">
-          <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
-          <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
-            {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
-          </select>
-        </div>
-        {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
-        <Button onClick={create} className="w-full" disabled={saving || !kanji || !reading}>
-          {saving ? "Saving…" : "Add to corpus"}
-        </Button>
-      </Paper>
+    <>
+      {selected && (
+        <Modal onClose={() => setSelected(null)}>
+          <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Word detail</p>
+          <p style={{ fontSize: "2.5rem", lineHeight: 1.1 }}>{selected.kanji[0]?.text}</p>
+          <p className="italic text-[#5e5132] mt-1">{selected.readings[0]?.text}</p>
+          <div className="flex gap-2 mt-3">
+            <Tag>N{selected.jlpt}</Tag>
+            {selected.is_common && <Tag>common</Tag>}
+          </div>
+          <div className="mt-4 space-y-2">
+            {selected.sense.map((s, i) => (
+              <div key={i} className="border-t border-[#e5dabc] pt-2">
+                <p>{s.gloss.map((g) => g.text).join("; ")}</p>
+                <p className="italic text-[#7a6a45]" style={{ fontSize: "0.85rem" }}>{s.pos.join(", ")}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 border-t border-[#e5dabc] pt-4">
+            <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
+          </div>
+        </Modal>
+      )}
 
-      <div className="md:col-span-2 space-y-3">
-        {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
-        {items.map((w) => (
-          <Paper key={w.id} className="p-4 flex items-center justify-between">
-            <div>
-              <p style={{ fontSize: "1.4rem" }}>{w.kanji[0]?.text} <span className="italic text-[#7a6a45]" style={{ fontSize: "1rem" }}>· {w.readings[0]?.text}</span></p>
-              <p className="text-[#5e5132]">{w.sense[0]?.gloss[0]?.text}</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        <div className="md:col-span-1 sticky top-6">
+          <Paper className="p-6 overflow-y-auto" style={{ height: "420px" }}>
+            <h3 className="italic mb-4">New Word</h3>
+            <Field label="Kanji" value={kanji} onChange={setKanji} />
+            <Field label="Reading" value={reading} onChange={setReading} />
+            <Field label="Meaning (en)" value={meaning} onChange={setMeaning} />
+            <div className="mb-4">
+              <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
+              <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+                {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
+              </select>
             </div>
-            <div className="flex items-center gap-3">
-              <Tag>N{w.jlpt}</Tag>
-              <Button variant="outline" onClick={() => remove(w.id)}>Delete</Button>
-            </div>
+            {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
+            <Button onClick={create} className="w-full" disabled={saving || !kanji || !reading}>
+              {saving ? "Saving…" : "Add to corpus"}
+            </Button>
           </Paper>
-        ))}
+        </div>
+
+        <div className="md:col-span-2">
+          {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
+          <div className="space-y-3">
+            {items.map((w) => (
+              <button
+                key={w.id}
+                onClick={() => setSelected(w)}
+                className="w-full text-left"
+              >
+                <Paper className="p-4 flex items-center justify-between hover:bg-[#efe6cf] transition-colors">
+                  <div>
+                    <p style={{ fontSize: "1.4rem" }}>{w.kanji[0]?.text} <span className="italic text-[#7a6a45]" style={{ fontSize: "1rem" }}>· {w.readings[0]?.text}</span></p>
+                    <p className="text-[#5e5132]">{w.sense[0]?.gloss[0]?.text}</p>
+                  </div>
+                  <Tag>N{w.jlpt}</Tag>
+                </Paper>
+              </button>
+            ))}
+          </div>
+          <Pagination offset={offset} total={total} limit={PAGE_SIZE} onChange={load} />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
+// ── Grammar ───────────────────────────────────────────────────────────────────
+
 function GrammarAdmin() {
   const [items, setItems] = useState<GrammarResponse[]>([]);
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<GrammarResponse | null>(null);
   const [pattern, setPattern] = useState("");
   const [meaning, setMeaning] = useState("");
   const [formation, setFormation] = useState("");
@@ -130,78 +222,108 @@ function GrammarAdmin() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    adminApi.listGrammars(50)
-      .then((res) => setItems(res.items ?? []))
+  const load = (o: number) => {
+    setLoading(true);
+    adminApi.listGrammars(PAGE_SIZE, o)
+      .then((res) => { setItems(res.items ?? []); setTotal(res.total); setOffset(o); })
       .catch(() => setError("Could not load grammar."))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(0); }, []);
 
   const create = async () => {
     if (!pattern) return;
-    setSaving(true);
-    setError("");
+    setSaving(true); setError("");
     try {
       const g = await adminApi.createGrammar({ jlpt, pattern, meaning, formation });
       setItems((prev) => [g, ...prev]);
       setPattern(""); setMeaning(""); setFormation("");
-    } catch {
-      setError("Failed to create grammar entry.");
-    } finally {
-      setSaving(false);
-    }
+    } catch { setError("Failed to create grammar entry."); }
+    finally { setSaving(false); }
   };
 
   const remove = async (id: string) => {
     try {
       await adminApi.deleteGrammar(id);
       setItems((prev) => prev.filter((g) => g.id !== id));
-    } catch {
-      setError("Failed to delete grammar entry.");
-    }
+      if (selected?.id === id) setSelected(null);
+    } catch { setError("Failed to delete grammar entry."); }
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <Paper className="p-6 md:col-span-1">
-        <h3 className="italic mb-4">New Grammar</h3>
-        <Field label="Pattern" value={pattern} onChange={setPattern} />
-        <Field label="Meaning" value={meaning} onChange={setMeaning} />
-        <Field label="Formation" value={formation} onChange={setFormation} />
-        <div className="mb-4">
-          <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
-          <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
-            {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
-          </select>
-        </div>
-        {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
-        <Button onClick={create} className="w-full" disabled={saving || !pattern}>
-          {saving ? "Saving…" : "Add grammar"}
-        </Button>
-      </Paper>
-
-      <div className="md:col-span-2 space-y-3">
-        {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
-        {items.map((g) => (
-          <Paper key={g.id} className="p-4">
-            <div className="flex justify-between">
-              <p style={{ fontSize: "1.2rem" }}>{g.pattern}</p>
-              <div className="flex gap-2 items-center">
-                <Tag>N{g.jlpt}</Tag>
-                <Button variant="outline" onClick={() => remove(g.id)}>Delete</Button>
-              </div>
+    <>
+      {selected && (
+        <Modal onClose={() => setSelected(null)}>
+          <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Grammar detail</p>
+          <p style={{ fontSize: "1.8rem" }}>{selected.pattern}</p>
+          <Tag>N{selected.jlpt}</Tag>
+          <p className="mt-3">{selected.meaning}</p>
+          <p className="italic text-[#7a6a45] mt-1">{selected.formation}</p>
+          {selected.notes && <p className="mt-2 text-[#5e5132]">{selected.notes}</p>}
+          {selected.example[0] && (
+            <div className="mt-4 pl-4 border-l-2 border-[#cdbf9d] italic text-[#5e5132]">
+              <p>{selected.example[0].japanese}</p>
+              <p className="text-[#7a6a45]">{selected.example[0].translation}</p>
             </div>
-            <p className="text-[#5e5132]">{g.meaning}</p>
-            <p className="italic text-[#7a6a45]">{g.formation}</p>
+          )}
+          <div className="mt-6 border-t border-[#e5dabc] pt-4">
+            <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
+          </div>
+        </Modal>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        <div className="md:col-span-1 sticky top-6">
+          <Paper className="p-6 overflow-y-auto" style={{ height: "420px" }}>
+            <h3 className="italic mb-4">New Grammar</h3>
+            <Field label="Pattern" value={pattern} onChange={setPattern} />
+            <Field label="Meaning" value={meaning} onChange={setMeaning} />
+            <Field label="Formation" value={formation} onChange={setFormation} />
+            <div className="mb-4">
+              <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
+              <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+                {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
+              </select>
+            </div>
+            {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
+            <Button onClick={create} className="w-full" disabled={saving || !pattern}>
+              {saving ? "Saving…" : "Add grammar"}
+            </Button>
           </Paper>
-        ))}
+        </div>
+
+        <div className="md:col-span-2">
+          {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
+          <div className="space-y-3">
+            {items.map((g) => (
+              <button key={g.id} onClick={() => setSelected(g)} className="w-full text-left">
+                <Paper className="p-4 hover:bg-[#efe6cf] transition-colors">
+                  <div className="flex justify-between items-baseline">
+                    <p style={{ fontSize: "1.2rem" }}>{g.pattern}</p>
+                    <Tag>N{g.jlpt}</Tag>
+                  </div>
+                  <p className="text-[#5e5132]">{g.meaning}</p>
+                  <p className="italic text-[#7a6a45]" style={{ fontSize: "0.85rem" }}>{g.formation}</p>
+                </Paper>
+              </button>
+            ))}
+          </div>
+          <Pagination offset={offset} total={total} limit={PAGE_SIZE} onChange={load} />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
+// ── Questions ─────────────────────────────────────────────────────────────────
+
 function QuestionsAdmin() {
   const [items, setItems] = useState<QuestionWithAnswerResponse[]>([]);
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<QuestionWithAnswerResponse | null>(null);
   const [prompt, setPrompt] = useState("");
   const [choices, setChoices] = useState(["", "", "", ""]);
   const [correctIndex, setCorrectIndex] = useState(0);
@@ -210,10 +332,19 @@ function QuestionsAdmin() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  const load = (o: number) => {
+    setLoading(true);
+    adminApi.listQuestions(PAGE_SIZE, o)
+      .then((res) => { setItems(res.items ?? []); setTotal(res.total); setOffset(o); })
+      .catch(() => setError("Could not load questions."))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(0); }, []);
+
   const create = async () => {
     if (!prompt || choices.some((c) => !c)) return;
-    setSaving(true);
-    setError("");
+    setSaving(true); setError("");
     try {
       const q = await adminApi.createQuestion({
         jlpt, section, type: "multiple_choice", prompt,
@@ -221,142 +352,231 @@ function QuestionsAdmin() {
       });
       setItems((prev) => [q, ...prev]);
       setPrompt(""); setChoices(["", "", "", ""]); setCorrectIndex(0);
-    } catch {
-      setError("Failed to create question.");
-    } finally {
-      setSaving(false);
-    }
+    } catch { setError("Failed to create question."); }
+    finally { setSaving(false); }
   };
 
   const remove = async (id: string) => {
     try {
       await adminApi.deleteQuestion(id);
       setItems((prev) => prev.filter((q) => q.id !== id));
-    } catch {
-      setError("Failed to delete question.");
-    }
+      if (selected?.id === id) setSelected(null);
+    } catch { setError("Failed to delete question."); }
   };
 
   return (
-    <div className="space-y-6">
-      <Paper className="p-6">
-        <h3 className="italic mb-4">New Question</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
-            <Field label="Prompt" value={prompt} onChange={setPrompt} />
+    <>
+      {selected && (
+        <Modal onClose={() => setSelected(null)}>
+          <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Question detail</p>
+          <p className="mt-2">{selected.prompt}</p>
+          <ul className="mt-4 space-y-2">
+            {selected.choices.map((c, i) => (
+              <li
+                key={i}
+                className={`px-3 py-2 border ${i === selected.correct_index ? "border-[#7a8950] bg-[#e8efd8]" : "border-[#d9cfb8]"}`}
+              >
+                <span className="italic text-[#7a6a45] mr-2">{String.fromCharCode(97 + i)}.</span>{c}
+              </li>
+            ))}
+          </ul>
+          {selected.explanation && (
+            <p className="mt-4 italic text-[#5e5132]">{selected.explanation}</p>
+          )}
+          <div className="mt-6 border-t border-[#e5dabc] pt-4">
+            <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
           </div>
-          {choices.map((c, i) => (
-            <div key={i}>
-              <label className="block italic text-[#7a6a45] mb-1">
-                Choice {String.fromCharCode(65 + i)} {i === correctIndex && "✓"}
-              </label>
-              <input
-                value={c}
-                onChange={(e) => setChoices((prev) => prev.map((v, idx) => idx === i ? e.target.value : v))}
-                className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14]"
-              />
-            </div>
-          ))}
-          <div>
-            <label className="block italic text-[#7a6a45] mb-1">Correct answer</label>
-            <select value={correctIndex} onChange={(e) => setCorrectIndex(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
-              {choices.map((_, i) => <option key={i} value={i}>{String.fromCharCode(65 + i)}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block italic text-[#7a6a45] mb-1">Section</label>
-            <select value={section} onChange={(e) => setSection(e.target.value as typeof section)} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
-              {["vocabulary", "grammar", "reading"].map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
-            <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
-              {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
-            </select>
-          </div>
-        </div>
-        {error && <p className="italic text-[#8a4438] mt-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
-        <div className="mt-4">
-          <Button onClick={create} disabled={saving || !prompt || choices.some((c) => !c)}>
-            {saving ? "Saving…" : "Add question"}
-          </Button>
-        </div>
-      </Paper>
+        </Modal>
+      )}
 
-      <div className="space-y-3">
-        {items.map((q) => (
-          <Paper key={q.id} className="p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="flex gap-2 mb-1">
-                  <Tag>{section}</Tag>
-                </div>
-                <p>{q.prompt}</p>
-                <p className="italic text-[#7a6a45]">Answer: {q.choices[q.correct_index]}</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        <div className="md:col-span-1 sticky top-6">
+          <Paper className="p-6 overflow-y-auto" style={{ height: "520px" }}>
+            <h3 className="italic mb-4">New Question</h3>
+            <Field label="Prompt" value={prompt} onChange={setPrompt} />
+            {choices.map((c, i) => (
+              <div key={i} className="mb-3">
+                <label className="block italic text-[#7a6a45] mb-1">
+                  Choice {String.fromCharCode(65 + i)} {i === correctIndex && "✓"}
+                </label>
+                <input
+                  value={c}
+                  onChange={(e) => setChoices((prev) => prev.map((v, idx) => idx === i ? e.target.value : v))}
+                  className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14]"
+                />
               </div>
-              <Button variant="outline" onClick={() => remove(q.id)}>Delete</Button>
+            ))}
+            <div className="mb-3">
+              <label className="block italic text-[#7a6a45] mb-1">Correct answer</label>
+              <select value={correctIndex} onChange={(e) => setCorrectIndex(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+                {choices.map((_, i) => <option key={i} value={i}>{String.fromCharCode(65 + i)}</option>)}
+              </select>
             </div>
+            <div className="mb-3">
+              <label className="block italic text-[#7a6a45] mb-1">Section</label>
+              <select value={section} onChange={(e) => setSection(e.target.value as typeof section)} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+                {["vocabulary", "grammar", "reading"].map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className="mb-4">
+              <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
+              <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+                {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
+              </select>
+            </div>
+            {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
+            <Button onClick={create} disabled={saving || !prompt || choices.some((c) => !c)}>
+              {saving ? "Saving…" : "Add question"}
+            </Button>
           </Paper>
-        ))}
+        </div>
+
+        <div className="md:col-span-2">
+          {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
+          <div className="space-y-3">
+            {items.map((q) => (
+              <button key={q.id} onClick={() => setSelected(q)} className="w-full text-left">
+                <Paper className="p-4 hover:bg-[#efe6cf] transition-colors">
+                  <p className="line-clamp-2">{q.prompt}</p>
+                  <p className="italic text-[#7a6a45] mt-1" style={{ fontSize: "0.85rem" }}>
+                    Answer: {q.choices[q.correct_index]}
+                  </p>
+                </Paper>
+              </button>
+            ))}
+          </div>
+          <Pagination offset={offset} total={total} limit={PAGE_SIZE} onChange={load} />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
+// ── Paragraphs ────────────────────────────────────────────────────────────────
+
 function ParagraphsAdmin() {
+  const [items, setItems] = useState<ParagraphResponse[]>([]);
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<ParagraphResponse | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [jlpt, setJlpt] = useState(5);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+
+  const load = (o: number) => {
+    setLoading(true);
+    adminApi.listParagraphs(PAGE_SIZE, o)
+      .then((res) => { setItems(res.items ?? []); setTotal(res.total); setOffset(o); })
+      .catch(() => setError("Could not load paragraphs."))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(0); }, []);
 
   const create = async () => {
     if (!title || content.length < 10) return;
-    setSaving(true);
-    setError(""); setSuccess("");
+    setSaving(true); setError("");
     try {
-      await adminApi.createParagraph({
-        jlpt, title, content, tags: [],
-        questions: [],
-      });
+      const p = await adminApi.createParagraph({ jlpt, title, content, tags: [], questions: [] });
+      setItems((prev) => [p, ...prev]);
       setTitle(""); setContent("");
-      setSuccess("Paragraph created.");
-    } catch {
-      setError("Failed to create paragraph.");
-    } finally {
-      setSaving(false);
-    }
+    } catch { setError("Failed to create paragraph."); }
+    finally { setSaving(false); }
+  };
+
+  const remove = async (id: string) => {
+    try {
+      await adminApi.deleteParagraph(id);
+      setItems((prev) => prev.filter((p) => p.id !== id));
+      if (selected?.id === id) setSelected(null);
+    } catch { setError("Failed to delete paragraph."); }
   };
 
   return (
-    <Paper className="p-6 max-w-2xl">
-      <h3 className="italic mb-4">New Paragraph</h3>
-      <Field label="Title" value={title} onChange={setTitle} />
-      <div className="mb-4">
-        <label className="block italic text-[#7a6a45] mb-1">Content</label>
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={6}
-          className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14] resize-none"
-        />
+    <>
+      {selected && (
+        <Modal onClose={() => setSelected(null)}>
+          <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Paragraph detail</p>
+          <div className="flex items-baseline gap-3 mt-1">
+            <p style={{ fontSize: "1.3rem" }}>{selected.title}</p>
+            <Tag>N{selected.jlpt}</Tag>
+          </div>
+          {selected.tags.length > 0 && (
+            <div className="flex gap-2 mt-2">
+              {selected.tags.map((t) => <Tag key={t}>{t}</Tag>)}
+            </div>
+          )}
+          <p className="mt-4 text-[#3a2f22] leading-relaxed" style={{ whiteSpace: "pre-wrap" }}>{selected.content}</p>
+          {selected.questions.length > 0 && (
+            <div className="mt-4 border-t border-[#e5dabc] pt-4">
+              <p className="italic text-[#7a6a45] mb-2" style={{ fontSize: "0.85rem" }}>{selected.questions.length} question(s)</p>
+              {selected.questions.map((q, i) => (
+                <p key={i} className="text-[#5e5132] mb-1" style={{ fontSize: "0.9rem" }}>{i + 1}. {q.prompt}</p>
+              ))}
+            </div>
+          )}
+          <div className="mt-6 border-t border-[#e5dabc] pt-4">
+            <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
+          </div>
+        </Modal>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        <div className="md:col-span-1 sticky top-6">
+          <Paper className="p-6 overflow-y-auto" style={{ height: "420px" }}>
+            <h3 className="italic mb-4">New Paragraph</h3>
+            <Field label="Title" value={title} onChange={setTitle} />
+            <div className="mb-4">
+              <label className="block italic text-[#7a6a45] mb-1">Content</label>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={5}
+                className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14] resize-none"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
+              <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+                {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
+              </select>
+            </div>
+            {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
+            <Button onClick={create} disabled={saving || !title || content.length < 10}>
+              {saving ? "Saving…" : "Create paragraph"}
+            </Button>
+          </Paper>
+        </div>
+
+        <div className="md:col-span-2">
+          {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
+          <div className="space-y-3">
+            {items.map((p) => (
+              <button key={p.id} onClick={() => setSelected(p)} className="w-full text-left">
+                <Paper className="p-4 hover:bg-[#efe6cf] transition-colors">
+                  <div className="flex justify-between items-baseline">
+                    <p style={{ fontSize: "1.1rem" }}>{p.title}</p>
+                    <Tag>N{p.jlpt}</Tag>
+                  </div>
+                  <p className="text-[#5e5132] mt-1 line-clamp-2" style={{ fontSize: "0.9rem" }}>{p.content}</p>
+                  {p.questions.length > 0 && (
+                    <p className="italic text-[#a89770] mt-1" style={{ fontSize: "0.8rem" }}>{p.questions.length} question(s)</p>
+                  )}
+                </Paper>
+              </button>
+            ))}
+          </div>
+          <Pagination offset={offset} total={total} limit={PAGE_SIZE} onChange={load} />
+        </div>
       </div>
-      <div className="mb-4">
-        <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
-        <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
-          {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
-        </select>
-      </div>
-      {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
-      {success && <p className="italic text-[#5a6e34] mb-3" style={{ fontSize: "0.85rem" }}>{success}</p>}
-      <Button onClick={create} disabled={saving || !title || content.length < 10}>
-        {saving ? "Saving…" : "Create paragraph"}
-      </Button>
-    </Paper>
+    </>
   );
 }
+
+// ── Shared ────────────────────────────────────────────────────────────────────
 
 function Field({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
