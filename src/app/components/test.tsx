@@ -44,8 +44,7 @@ export function TestPage() {
     return (
       <div className="max-w-2xl mx-auto">
         <header className="mb-6">
-          <p className="tracking-[0.25em] text-[#7a6a45]">EXAMINATION</p>
-          <h2 className="italic">Mock JLPT Test</h2>
+          <h2 className="italic">Mock test</h2>
         </header>
         <Paper className="p-8">
           <p className="text-[#3a2f22]">Select a level. Sections include vocabulary, grammar, and reading.</p>
@@ -79,8 +78,7 @@ export function TestPage() {
       <div className="max-w-3xl mx-auto">
         <Paper className="p-10">
           <div className="text-center">
-            <p className="tracking-[0.25em] text-[#7a6a45]">RESULT</p>
-            <h2 className="italic">Mock Test · N{test.jlpt}</h2>
+            <h2 className="italic">N{test.jlpt} result</h2>
             <p style={{ fontSize: "3rem" }} className="mt-2">{result.score} / {result.total}</p>
           </div>
           <Divider className="my-8" />
@@ -113,8 +111,7 @@ export function TestPage() {
     <div className="max-w-3xl mx-auto">
       <header className="mb-6 flex justify-between items-end">
         <div>
-          <p className="tracking-[0.25em] text-[#7a6a45]">N{test.jlpt} EXAMINATION</p>
-          <h2 className="italic">In Progress</h2>
+          <h2 className="italic">N{test.jlpt}</h2>
         </div>
         <div className="text-right">
           <p className="italic text-[#5e5132]">Time limit</p>

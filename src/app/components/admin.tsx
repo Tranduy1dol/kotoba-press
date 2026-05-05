@@ -11,11 +11,7 @@ export function AdminPage() {
   return (
     <div className="max-w-5xl mx-auto">
       <header className="mb-6 flex items-end justify-between">
-        <div>
-          <p className="tracking-[0.25em] text-[#7a6a45]">ADMINISTRATION</p>
-          <h2 className="italic">Editorial Office</h2>
-          <p className="text-[#5e5132]">Create, amend, and remove entries from the corpus.</p>
-        </div>
+        <h2 className="italic">Admin</h2>
         <Tag>admin</Tag>
       </header>
 
@@ -51,7 +47,7 @@ function WordsAdmin() {
 
   useEffect(() => {
     wordsApi.byLevel(5, 50)
-      .then((res) => setItems(res.data ?? (res as unknown as WordResponse[])))
+      .then((res) => setItems(res.data ?? []))
       .catch(() => setError("Could not load words."))
       .finally(() => setLoading(false));
   }, []);

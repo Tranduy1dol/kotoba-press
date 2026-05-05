@@ -10,8 +10,7 @@ export function ProfilePage({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="max-w-3xl mx-auto">
       <header className="mb-6">
-        <p className="tracking-[0.25em] text-[#7a6a45]">PROFILE</p>
-        <h2 className="italic">My Information</h2>
+        <h2 className="italic">Profile</h2>
       </header>
 
       <Paper className="p-8">

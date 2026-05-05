@@ -28,9 +28,7 @@ function ModeSelect({ level, setLevel, onPick }: { level: number; setLevel: (l: 
   return (
     <div className="max-w-4xl mx-auto">
       <header className="mb-8">
-        <p className="tracking-[0.25em] text-[#7a6a45]">CHAPTER II</p>
         <h2 className="italic">Learn</h2>
-        <p className="text-[#5e5132]">Choose how you would like to study today.</p>
       </header>
 
       <Paper className="p-6 mb-8">
@@ -214,9 +212,9 @@ function QuizMode({ level, onExit }: { level: number; onExit: () => void }) {
         <ModeHeader title="Multiple Choice" sub="Result" onExit={onExit} />
         <Paper className="p-10 text-center">
           <p style={{ fontSize: "3rem" }}>{score} / {deck.length}</p>
-          <p className="italic text-[#5e5132] mt-2">Well done. Take a moment, then try again.</p>
+          <p className="italic text-[#5e5132] mt-2">{score} / {deck.length}</p>
           <div className="mt-6">
-            <Button onClick={() => { setI(0); setPicked(null); setScore(0); setDone(false); }}>Begin a new round</Button>
+            <Button onClick={() => { setI(0); setPicked(null); setScore(0); setDone(false); }}>Try again</Button>
           </div>
         </Paper>
       </div>
@@ -344,7 +342,7 @@ function ListeningMode({ level, onExit }: { level: number; onExit: () => void })
     <div className="max-w-2xl mx-auto">
       <ModeHeader title="Listening" sub={`Word ${(i % deck.length) + 1} of ${deck.length}`} onExit={onExit} />
       <Paper className="p-12 text-center">
-        <p className="italic text-[#7a6a45]">Press play, then recall the meaning.</p>
+        <Tag>JLPT N{card.jlpt}</Tag>
         <button onClick={speak} className="mt-6 mx-auto w-24 h-24 rounded-full border-2 border-[#1f1a14] flex items-center justify-center hover:bg-[#1f1a14] hover:text-[#fbf8f1] transition-colors">
           <span style={{ fontSize: "2rem" }}>♪</span>
         </button>
@@ -372,11 +370,10 @@ function ModeHeader({ title, sub, onExit }: { title: string; sub: string; onExit
   return (
     <header className="mb-6 flex justify-between items-end">
       <div>
-        <p className="tracking-[0.25em] text-[#7a6a45]">LEARN</p>
-        <h2 className="italic">{title}</h2>
+        <p className="tracking-[0.25em] text-[#7a6a45]">LEARN</p>        <h2 className="italic">{title}</h2>
         <p className="text-[#5e5132]">{sub}</p>
       </div>
-      <Button variant="ghost" onClick={onExit}>← Back to modes</Button>
+      <Button variant="ghost" onClick={onExit}>← Back</Button>
     </header>
   );
 }
@@ -385,7 +382,7 @@ function LoadingState({ title, onExit }: { title: string; onExit: () => void }) 
   return (
     <div className="max-w-3xl mx-auto">
       <ModeHeader title={title} sub="Loading…" onExit={onExit} />
-      <Paper className="p-12 text-center italic text-[#7a6a45]">Fetching from the archive…</Paper>
+      <Paper className="p-12 text-center italic text-[#7a6a45]">Loading…</Paper>
     </div>
   );
 }

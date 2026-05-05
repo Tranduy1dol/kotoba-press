@@ -44,14 +44,10 @@ export function HomePage({ onGoLearn, onGoTest }: { onGoLearn: () => void; onGoT
 
   return (
     <div className="max-w-5xl mx-auto">
-      <header className="mb-10 text-center">
-        <p className="tracking-[0.3em] text-[#7a6a45]">VOLUME I · MAY MMXXVI</p>
-        <h1 className="italic mt-2" style={{ fontSize: "3rem", lineHeight: 1.1 }}>
-          Welcome back, {firstName}
+      <header className="mb-10">
+        <h1 className="italic" style={{ fontSize: "2rem", lineHeight: 1.1 }}>
+          {firstName}
         </h1>
-        <p className="italic text-[#5e5132] mt-3 max-w-xl mx-auto">
-          A quiet study of Japanese — your dictionary, your progress, your daily cards.
-        </p>
       </header>
 
       <Paper className="p-2 mb-10">
@@ -152,20 +148,20 @@ function Stat({ label, value, sub }: { label: string; value: string; sub: string
 function QuickActions({ onGoLearn, onGoTest }: { onGoLearn: () => void; onGoTest: () => void }) {
   return (
     <section>
-      <p className="tracking-[0.25em] text-[#7a6a45] mb-3">CONTINUE</p>
+      <p className="text-[#7a6a45] italic mb-3">Continue</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Paper className="p-6">
-          <h3 className="italic">Today's review</h3>
-          <p className="text-[#5e5132] mt-1">{mockAnalytics.cardsDueToday} cards await your attention.</p>
+          <h3 className="italic">Review</h3>
+          <p className="text-[#5e5132] mt-1">{mockAnalytics.cardsDueToday} cards due.</p>
           <div className="mt-4">
-            <Button onClick={onGoLearn}>Begin learning</Button>
+            <Button onClick={onGoLearn}>Start</Button>
           </div>
         </Paper>
         <Paper className="p-6">
-          <h3 className="italic">Mock examination</h3>
-          <p className="text-[#5e5132] mt-1">Test yourself across vocabulary, grammar, and reading.</p>
+          <h3 className="italic">Mock test</h3>
+          <p className="text-[#5e5132] mt-1">Vocabulary, grammar, and reading.</p>
           <div className="mt-4">
-            <Button variant="outline" onClick={onGoTest}>Open the test hall</Button>
+            <Button variant="outline" onClick={onGoTest}>Start</Button>
           </div>
         </Paper>
       </div>
