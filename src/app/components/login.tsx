@@ -1,13 +1,6 @@
 import { useAuth } from "../auth";
 import { Paper, Button, Divider, Tag } from "./paper";
 
-const NAV_LINKS = [
-  { label: "About", href: "#" },
-  { label: "Privacy", href: "#" },
-  { label: "Terms", href: "#" },
-  { label: "Contact", href: "#" },
-];
-
 export function LoginPage() {
   const { login } = useAuth();
 
@@ -34,11 +27,6 @@ function Header() {
         <span className="tracking-[0.3em] text-[#7a6a45]">日本語</span>
         <span className="italic" style={{ fontSize: "1.4rem" }}>Kotoba Press</span>
       </div>
-      <nav className="hidden md:flex gap-8 italic text-[#3a2f22]">
-        {NAV_LINKS.map((l) => (
-          <a key={l.label} href={l.href} className="hover:text-[#1f1a14]">{l.label}</a>
-        ))}
-      </nav>
     </header>
   );
 }
@@ -84,11 +72,6 @@ function Footer() {
     <footer className="border-t border-[#cdbf9d] bg-[#fbf8f1]">
       <div className="max-w-6xl mx-auto px-8 py-6 flex flex-col md:flex-row justify-between gap-3 italic text-[#7a6a45]" style={{ fontSize: "0.9rem" }}>
         <span>Kotoba Press · est. 2026</span>
-        <div className="flex gap-6">
-          {NAV_LINKS.map((l) => (
-            <a key={l.label} href={l.href} className="hover:text-[#1f1a14]">{l.label}</a>
-          ))}
-        </div>
       </div>
     </footer>
   );

@@ -39,6 +39,7 @@ export default function App() {
   }
 
   if (!user) {
+    if (pathname !== "/") navigate("/", { replace: true });
     return (
       <div className="min-h-screen" style={{ fontFamily: "'EB Garamond', 'Times New Roman', Times, serif", color: "#1f1a14" }}>
         <LoginPage />
