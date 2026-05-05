@@ -18,7 +18,7 @@ const ROUTE_PATHS: Record<RouteId, string> = {
 };
 
 function pathToRouteId(pathname: string): RouteId {
-  const entry = Object.entries(ROUTE_PATHS).find(([, p]) => p === pathname);
+  const entry = Object.entries(ROUTE_PATHS).find(([, p]) => pathname === p || (p !== "/" && pathname.startsWith(p)));
   return (entry?.[0] as RouteId) ?? "home";
 }
 
@@ -72,6 +72,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage onGoLearn={() => setRoute("learn")} onGoTest={() => setRoute("test")} />} />
           <Route path="/learn" element={<LearnPage />} />
+          <Route path="/learn/:mode" element={<LearnPage />} />
           <Route path="/test" element={<TestPage />} />
           <Route path="/profile" element={<ProfilePage onLogout={logout} />} />
           <Route path="/admin" element={isAdmin ? <AdminPage /> : <Navigate to="/" replace />} />

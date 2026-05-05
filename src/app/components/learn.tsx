@@ -1,13 +1,20 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router";
 import { srs as srsApi, words as wordsApi } from "../api";
 import type { SRSCardResponse, WordResponse } from "../api";
 import { Paper, Button, Divider, Tag } from "./paper";
 
 type Mode = "select" | "srs" | "quiz" | "typing" | "listening";
 
+const VALID_MODES: Mode[] = ["srs", "quiz", "typing", "listening"];
+
 export function LearnPage() {
-  const [mode, setMode] = useState<Mode>("select");
+  const { mode: modeParam } = useParams<{ mode?: string }>();
+  const navigate = useNavigate();
   const [level, setLevel] = useState(5);
+
+  const mode: Mode = VALID_MODES.includes(modeParam as Mode) ? (modeParam as Mode) : "select";
+  const setMode = (m: Mode) => m === "select" ? navigate("/learn", { replace: true }) : navigate(`/learn/${m}`);
 
   if (mode === "select") return <ModeSelect level={level} setLevel={setLevel} onPick={setMode} />;
   if (mode === "srs") return <SRSMode onExit={() => setMode("select")} />;
