@@ -91,14 +91,13 @@ function WordsAdmin() {
         <div className="mb-4">
           <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
           <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
-            {[5,4,3,2,1].map((n) => <option key={n} value={n}>N{n}</option>)}
+            {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
           </select>
         </div>
         {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
         <Button onClick={create} className="w-full" disabled={saving || !kanji || !reading}>
           {saving ? "Saving…" : "Add to corpus"}
         </Button>
-        <p className="italic text-[#7a6a45] mt-3" style={{ fontSize: "0.8rem" }}>POST /admin/words</p>
       </Paper>
 
       <div className="md:col-span-2 space-y-3">
@@ -171,14 +170,13 @@ function GrammarAdmin() {
         <div className="mb-4">
           <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
           <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
-            {[5,4,3,2,1].map((n) => <option key={n} value={n}>N{n}</option>)}
+            {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
           </select>
         </div>
         {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
         <Button onClick={create} className="w-full" disabled={saving || !pattern}>
           {saving ? "Saving…" : "Add grammar"}
         </Button>
-        <p className="italic text-[#7a6a45] mt-3" style={{ fontSize: "0.8rem" }}>POST /admin/grammars</p>
       </Paper>
 
       <div className="md:col-span-2 space-y-3">
@@ -273,7 +271,7 @@ function QuestionsAdmin() {
           <div>
             <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
             <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
-              {[5,4,3,2,1].map((n) => <option key={n} value={n}>N{n}</option>)}
+              {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
             </select>
           </div>
         </div>
@@ -347,7 +345,7 @@ function ParagraphsAdmin() {
       <div className="mb-4">
         <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
         <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
-          {[5,4,3,2,1].map((n) => <option key={n} value={n}>N{n}</option>)}
+          {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
         </select>
       </div>
       {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
@@ -355,7 +353,6 @@ function ParagraphsAdmin() {
       <Button onClick={create} disabled={saving || !title || content.length < 10}>
         {saving ? "Saving…" : "Create paragraph"}
       </Button>
-      <p className="italic text-[#7a6a45] mt-3" style={{ fontSize: "0.8rem" }}>POST /admin/paragraphs</p>
     </Paper>
   );
 }

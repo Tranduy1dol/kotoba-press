@@ -77,8 +77,7 @@ export default function App() {
         </Routes>
 
         <footer className="max-w-5xl mx-auto mt-16 pt-6 border-t border-[#cdbf9d] italic text-[#7a6a45] flex justify-between" style={{ fontSize: "0.85rem" }}>
-          <span>Kotoba Press · Volume I</span>
-          <span>Printed in studious silence</span>
+          <span>Kotoba Press</span>
         </footer>
       </main>
     </div>
@@ -105,9 +104,8 @@ function Sidebar({
           <button
             key={n.id}
             onClick={() => setRoute(n.id)}
-            className={`text-left py-2 border-t border-[#e5dabc] flex justify-between items-baseline ${
-              route === n.id ? "italic text-[#1f1a14]" : "text-[#3a2f22] hover:italic"
-            } ${i === nav.length - 1 ? "border-b" : ""}`}
+            className={`text-left py-2 border-t border-[#e5dabc] flex justify-between items-baseline ${route === n.id ? "italic text-[#1f1a14]" : "text-[#3a2f22] hover:italic"
+              } ${i === nav.length - 1 ? "border-b" : ""}`}
           >
             <span>
               <span className="italic text-[#7a6a45] mr-3" style={{ fontSize: "0.8rem" }}>
@@ -119,10 +117,6 @@ function Sidebar({
           </button>
         ))}
       </nav>
-
-      <p className="px-6 mt-8 italic text-[#7a6a45]" style={{ fontSize: "0.8rem" }}>
-        “Read carefully, write carefully, think carefully.”
-      </p>
 
       <div className="mt-auto px-3 pb-4">
         <UserPill onOpen={() => setRoute("profile")} active={route === "profile"} />
@@ -138,9 +132,8 @@ function UserPill({ onOpen, active }: { onOpen: () => void; active: boolean }) {
   const initial = name[0] ?? "?";
   return (
     <div
-      className={`flex items-center gap-3 p-2 border transition-colors ${
-        active ? "border-[#1f1a14] bg-[#efe6cf]" : "border-[#d9cfb8] bg-[#fbf8f1] hover:bg-[#efe6cf]"
-      }`}
+      className={`flex items-center gap-3 p-2 border transition-colors ${active ? "border-[#1f1a14] bg-[#efe6cf]" : "border-[#d9cfb8] bg-[#fbf8f1] hover:bg-[#efe6cf]"
+        }`}
     >
       <button onClick={onOpen} className="flex items-center gap-3 flex-1 min-w-0 text-left">
         <span className="w-9 h-9 rounded-full bg-[#efe6cf] border border-[#cdbf9d] flex items-center justify-center italic shrink-0">

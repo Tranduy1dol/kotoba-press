@@ -44,9 +44,9 @@ export function HomePage({ onGoLearn, onGoTest }: { onGoLearn: () => void; onGoT
 
   return (
     <div className="max-w-5xl mx-auto">
-      <header className="mb-10">
-        <h1 className="italic" style={{ fontSize: "2rem", lineHeight: 1.1 }}>
-          {firstName}
+      <header className="mb-10 text-center">
+        <h1 className="italic mt-2" style={{ fontSize: "3rem", lineHeight: 1.1 }}>
+          Welcome back, {firstName}
         </h1>
       </header>
 
@@ -231,8 +231,8 @@ function SearchResults({
 
         {((tab === "words" && wordResults.length === 0) ||
           (tab === "grammar" && grammarResults.length === 0)) && (
-          <p className="text-center italic text-[#7a6a45] py-12">No entries found for "{q}".</p>
-        )}
+            <p className="text-center italic text-[#7a6a45] py-12">No entries found for "{q}".</p>
+          )}
       </div>
     </section>
   );
