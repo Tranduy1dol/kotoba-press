@@ -46,7 +46,7 @@ export default function App() {
     );
   }
 
-  const isAdmin = false; // role comes from backend — extend when API exposes it
+  const isAdmin = user.role === "admin";
 
   const nav: { id: RouteId; label: string; jp: string }[] = [
     { id: "home", label: "Home", jp: "案内" },

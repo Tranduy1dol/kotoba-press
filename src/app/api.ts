@@ -71,6 +71,7 @@ export interface UserResponse {
   email: string;
   picture_url: string;
   created_at: string;
+  role: "user" | "admin";
   study_progress: ProgressResponse;
 }
 
