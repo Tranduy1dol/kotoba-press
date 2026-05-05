@@ -163,7 +163,7 @@ function WordsAdmin() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
         <div className="md:col-span-1 sticky top-6">
-          <Paper className="p-6 overflow-y-auto" style={{ height: "420px" }}>
+          <Paper className="p-6">
             <h3 className="italic mb-4">New Word</h3>
             <Field label="Kanji" value={kanji} onChange={setKanji} />
             <Field label="Reading" value={reading} onChange={setReading} />
@@ -275,7 +275,7 @@ function GrammarAdmin() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
         <div className="md:col-span-1 sticky top-6">
-          <Paper className="p-6 overflow-y-auto" style={{ height: "420px" }}>
+          <Paper className="p-6">
             <h3 className="italic mb-4">New Grammar</h3>
             <Field label="Pattern" value={pattern} onChange={setPattern} />
             <Field label="Meaning" value={meaning} onChange={setMeaning} />
@@ -391,7 +391,7 @@ function QuestionsAdmin() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
         <div className="md:col-span-1 sticky top-6">
-          <Paper className="p-6 overflow-y-auto" style={{ height: "520px" }}>
+          <Paper className="p-6">
             <h3 className="italic mb-4">New Question</h3>
             <Field label="Prompt" value={prompt} onChange={setPrompt} />
             {choices.map((c, i) => (
@@ -526,7 +526,7 @@ function ParagraphsAdmin() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
         <div className="md:col-span-1 sticky top-6">
-          <Paper className="p-6 overflow-y-auto" style={{ height: "420px" }}>
+          <Paper className="p-6">
             <h3 className="italic mb-4">New Paragraph</h3>
             <Field label="Title" value={title} onChange={setTitle} />
             <div className="mb-4">
