@@ -96,7 +96,6 @@ function Sidebar({
       <div className="px-6 pt-10 pb-6">
         <p className="tracking-[0.3em] text-[#7a6a45]">日本語</p>
         <p className="italic" style={{ fontSize: "1.6rem" }}>Kotoba Press</p>
-        <p className="italic text-[#7a6a45]" style={{ fontSize: "0.85rem" }}>est. 2026 · vol. I</p>
       </div>
 
       <nav className="flex flex-col px-6">
