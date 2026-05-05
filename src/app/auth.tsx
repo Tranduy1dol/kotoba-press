@@ -5,9 +5,19 @@ import type { UserResponse } from "./api";
 
 const AUTH_URL = import.meta.env.VITE_AUTH_URL as string;
 
+function getRoleFromToken(token: string): string {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.role ?? "user";
+  } catch {
+    return "user";
+  }
+}
+
 interface AuthState {
   token: string | null;
   user: UserResponse | null;
+  role: string;
   loading: boolean;
   login: () => void;
   logout: () => void;
@@ -60,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, loading, login, logout }}>
+    <AuthContext.Provider value={{ token, user, role: token ? getRoleFromToken(token) : "user", loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

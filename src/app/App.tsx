@@ -23,7 +23,7 @@ function pathToRouteId(pathname: string): RouteId {
 }
 
 export default function App() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, role } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
@@ -46,7 +46,7 @@ export default function App() {
     );
   }
 
-  const isAdmin = user.role === "admin";
+  const isAdmin = role === "admin";
 
   const nav: { id: RouteId; label: string; jp: string }[] = [
     { id: "home", label: "Home", jp: "案内" },
