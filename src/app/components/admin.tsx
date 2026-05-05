@@ -193,7 +193,6 @@ function WordsAdmin() {
               </div>
               <div className="mt-6 border-t border-[#e5dabc] pt-4 flex gap-3">
                 <Button onClick={() => openEdit(selected)}>Edit</Button>
-                <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
               </div>
             </>
           )}
@@ -231,7 +230,9 @@ function WordsAdmin() {
                     <p style={{ fontSize: "1.4rem" }}>{w.kanji[0]?.text} <span className="italic text-[#7a6a45]" style={{ fontSize: "1rem" }}>· {w.readings[0]?.text}</span></p>
                     <p className="text-[#5e5132]">{w.sense[0]?.gloss[0]?.text}</p>
                   </div>
-                  <Tag>N{w.jlpt}</Tag>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Button variant="outline" onClick={() => remove(w.id)}>Delete</Button>
+                  </div>
                 </Paper>
               </button>
             ))}
@@ -349,7 +350,6 @@ function GrammarAdmin() {
               )}
               <div className="mt-6 border-t border-[#e5dabc] pt-4 flex gap-3">
                 <Button onClick={() => openEdit(selected)}>Edit</Button>
-                <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
               </div>
             </>
           )}
@@ -383,9 +383,11 @@ function GrammarAdmin() {
             {items.map((g) => (
               <button key={g.id} onClick={() => { setSelected(g); setEditing(false); }} className="w-full text-left">
                 <Paper className="p-4 hover:bg-[#efe6cf] transition-colors">
-                  <div className="flex justify-between items-baseline">
+                  <div className="flex justify-between items-center">
                     <p style={{ fontSize: "1.2rem" }}>{g.pattern}</p>
-                    <Tag>N{g.jlpt}</Tag>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Button variant="outline" onClick={() => remove(g.id)}>Delete</Button>
+                    </div>
                   </div>
                   <p className="text-[#5e5132]">{g.meaning}</p>
                   <p className="italic text-[#7a6a45]" style={{ fontSize: "0.85rem" }}>{g.formation}</p>
@@ -516,7 +518,6 @@ function QuestionsAdmin() {
               {selected.explanation && <p className="mt-4 italic text-[#5e5132]">{selected.explanation}</p>}
               <div className="mt-6 border-t border-[#e5dabc] pt-4 flex gap-3">
                 <Button onClick={() => openEdit(selected)}>Edit</Button>
-                <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
               </div>
             </>
           )}
@@ -572,10 +573,17 @@ function QuestionsAdmin() {
             {items.map((q) => (
               <button key={q.id} onClick={() => { setSelected(q); setEditing(false); }} className="w-full text-left">
                 <Paper className="p-4 hover:bg-[#efe6cf] transition-colors">
-                  <p className="line-clamp-2">{q.prompt}</p>
-                  <p className="italic text-[#7a6a45] mt-1" style={{ fontSize: "0.85rem" }}>
-                    Answer: {q.choices[q.correct_index]}
-                  </p>
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="line-clamp-2">{q.prompt}</p>
+                      <p className="italic text-[#7a6a45] mt-1" style={{ fontSize: "0.85rem" }}>
+                        Answer: {q.choices[q.correct_index]}
+                      </p>
+                    </div>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Button variant="outline" onClick={() => remove(q.id)}>Delete</Button>
+                    </div>
+                  </div>
                 </Paper>
               </button>
             ))}
@@ -698,7 +706,6 @@ function ParagraphsAdmin() {
               )}
               <div className="mt-6 border-t border-[#e5dabc] pt-4 flex gap-3">
                 <Button onClick={() => openEdit(selected)}>Edit</Button>
-                <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
               </div>
             </>
           )}
@@ -735,9 +742,11 @@ function ParagraphsAdmin() {
             {items.map((p) => (
               <button key={p.id} onClick={() => { setSelected(p); setEditing(false); }} className="w-full text-left">
                 <Paper className="p-4 hover:bg-[#efe6cf] transition-colors">
-                  <div className="flex justify-between items-baseline">
+                  <div className="flex justify-between items-center">
                     <p style={{ fontSize: "1.1rem" }}>{p.title}</p>
-                    <Tag>N{p.jlpt}</Tag>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Button variant="outline" onClick={() => remove(p.id)}>Delete</Button>
+                    </div>
                   </div>
                   <p className="text-[#5e5132] mt-1 line-clamp-2" style={{ fontSize: "0.9rem" }}>{p.content}</p>
                   {p.questions.length > 0 && (
