@@ -45,7 +45,7 @@ export function HomePage({ onGoLearn, onGoTest }: { onGoLearn: () => void; onGoT
   return (
     <div className="max-w-5xl mx-auto">
       <header className="mb-10 text-center">
-        <h1 className="italic mt-2" style={{ fontSize: "3rem", lineHeight: 1.1 }}>
+        <h1 className="mt-2" style={{ fontSize: "3rem", lineHeight: 1.1 }}>
           Welcome back, {firstName}
         </h1>
       </header>

@@ -27,8 +27,10 @@ const MODES: { id: Mode; title: string; jp: string; desc: string }[] = [
 function ModeSelect({ level, setLevel, onPick }: { level: number; setLevel: (l: number) => void; onPick: (m: Mode) => void }) {
   return (
     <div className="max-w-4xl mx-auto">
-      <header className="mb-8">
-        <h2 className="italic">Learn</h2>
+      <header className="mb-10 text-center">
+        <h1 className="mt-2" style={{ fontSize: "3rem", lineHeight: 1.1 }}>
+          Learn
+        </h1>
       </header>
 
       <Paper className="p-6 mb-8">
@@ -38,7 +40,7 @@ function ModeSelect({ level, setLevel, onPick }: { level: number; setLevel: (l: 
             <p>JLPT N{level}</p>
           </div>
           <div className="flex gap-2">
-            {[5,4,3,2,1].map((lv) => (
+            {[5, 4, 3, 2, 1].map((lv) => (
               <button
                 key={lv}
                 onClick={() => setLevel(lv)}
@@ -239,12 +241,11 @@ function QuizMode({ level, onExit }: { level: number; onExit: () => void }) {
                 key={idx}
                 disabled={picked !== null}
                 onClick={() => setPicked(idx)}
-                className={`text-left px-4 py-3 border transition-colors ${
-                  correct ? "bg-[#e8efd8] border-[#7a8950]"
+                className={`text-left px-4 py-3 border transition-colors ${correct ? "bg-[#e8efd8] border-[#7a8950]"
                   : wrong ? "bg-[#f0d8d3] border-[#a06a5e]"
-                  : picked === idx ? "bg-[#efe6cf] border-[#1f1a14]"
-                  : "bg-[#fbf8f1] border-[#d9cfb8] hover:bg-[#efe6cf]"
-                }`}
+                    : picked === idx ? "bg-[#efe6cf] border-[#1f1a14]"
+                      : "bg-[#fbf8f1] border-[#d9cfb8] hover:bg-[#efe6cf]"
+                  }`}
               >
                 <span className="italic mr-3 text-[#7a6a45]">{String.fromCharCode(97 + idx)}.</span>
                 {c}

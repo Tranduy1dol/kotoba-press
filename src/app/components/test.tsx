@@ -43,8 +43,10 @@ export function TestPage() {
   if (!test) {
     return (
       <div className="max-w-2xl mx-auto">
-        <header className="mb-6">
-          <h2 className="italic">Mock test</h2>
+        <header className="mb-10 text-center">
+          <h1 className="mt-2" style={{ fontSize: "3rem", lineHeight: 1.1 }}>
+            Test
+          </h1>
         </header>
         <Paper className="p-8">
           <p className="text-[#3a2f22]">Select a level. Sections include vocabulary, grammar, and reading.</p>
@@ -133,9 +135,8 @@ export function TestPage() {
               {q.choices.map((c, i) => (
                 <label
                   key={i}
-                  className={`px-4 py-2 border cursor-pointer ${
-                    answers[q.id] === i ? "bg-[#1f1a14] text-[#fbf8f1] border-[#1f1a14]" : "border-[#d9cfb8] hover:bg-[#efe6cf]"
-                  }`}
+                  className={`px-4 py-2 border cursor-pointer ${answers[q.id] === i ? "bg-[#1f1a14] text-[#fbf8f1] border-[#1f1a14]" : "border-[#d9cfb8] hover:bg-[#efe6cf]"
+                    }`}
                 >
                   <input
                     type="radio"

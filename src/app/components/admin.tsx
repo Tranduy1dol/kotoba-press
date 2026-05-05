@@ -10,9 +10,10 @@ export function AdminPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <header className="mb-6 flex items-end justify-between">
-        <h2 className="italic">Admin</h2>
-        <Tag>admin</Tag>
+      <header className="mb-10 text-center">
+        <h1 className="mt-2" style={{ fontSize: "3rem", lineHeight: 1.1 }}>
+          Admin
+        </h1>
       </header>
 
       <div className="flex gap-6 border-b border-[#cdbf9d] mb-6">
