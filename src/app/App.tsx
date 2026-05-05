@@ -1,4 +1,4 @@
-import { useNavigate, useLocation, Routes, Route } from "react-router";
+import { useNavigate, useLocation, Routes, Route, Navigate } from "react-router";
 import { LoginPage } from "./components/login";
 import { HomePage } from "./components/home";
 import { LearnPage } from "./components/learn";
@@ -73,7 +73,7 @@ export default function App() {
           <Route path="/learn" element={<LearnPage />} />
           <Route path="/test" element={<TestPage />} />
           <Route path="/profile" element={<ProfilePage onLogout={logout} />} />
-          {isAdmin && <Route path="/admin" element={<AdminPage />} />}
+          <Route path="/admin" element={isAdmin ? <AdminPage /> : <Navigate to="/" replace />} />
         </Routes>
 
         <footer className="max-w-5xl mx-auto mt-16 pt-6 border-t border-[#cdbf9d] italic text-[#7a6a45] flex justify-between" style={{ fontSize: "0.85rem" }}>
