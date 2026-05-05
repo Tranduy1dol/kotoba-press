@@ -181,7 +181,7 @@ function useWordDeck(level: number) {
 
   useEffect(() => {
     wordsApi.byLevel(level, 50)
-      .then((res) => setDeck(res.data ?? (res as unknown as WordResponse[])))
+      .then((res) => setDeck(res.items ?? []))
       .catch(() => setError("Could not load words. Please try again."))
       .finally(() => setLoading(false));
   }, [level]);

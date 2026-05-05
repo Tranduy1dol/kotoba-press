@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { admin as adminApi, words as wordsApi, grammar as grammarApi } from "../api";
+import { admin as adminApi } from "../api";
 import type { WordResponse, GrammarResponse, QuestionWithAnswerResponse } from "../api";
-import { Paper, Button, Divider, Tag } from "./paper";
+import { Paper, Button, Tag } from "./paper";
 
 type Tab = "words" | "grammar" | "questions" | "paragraphs";
 
@@ -47,8 +47,8 @@ function WordsAdmin() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    wordsApi.byLevel(5, 50)
-      .then((res) => setItems(res.data ?? []))
+    adminApi.listWords(50)
+      .then((res) => setItems(res.items ?? []))
       .catch(() => setError("Could not load words."))
       .finally(() => setLoading(false));
   }, []);
@@ -131,8 +131,8 @@ function GrammarAdmin() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    grammarApi.list(5, 50)
-      .then(setItems)
+    adminApi.listGrammars(50)
+      .then((res) => setItems(res.items ?? []))
       .catch(() => setError("Could not load grammar."))
       .finally(() => setLoading(false));
   }, []);

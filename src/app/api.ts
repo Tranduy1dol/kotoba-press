@@ -59,10 +59,22 @@ export interface TestResponse {
 
 export interface SubmitTestResponse { score: number; total: number }
 
+export interface ActivityLogResponse {
+  action: string;
+  date: string;
+  detail: string;
+}
+
 export interface ProgressResponse {
   cards_studied: number;
   jlpt_level: number;
   last_study_at: string;
+  streak: number;
+  longest_streak: number;
+  quizzes_taken: number;
+  accuracy: number;
+  weekly_minutes: number[];
+  recent_activity: ActivityLogResponse[];
 }
 
 export interface UserResponse {
@@ -82,6 +94,11 @@ export interface ParagraphResponse {
   tags: string[];
   questions: QuestionResponse[];
 }
+
+export interface PaginatedWords { items: WordResponse[]; total: number; limit: number; offset: number }
+export interface PaginatedGrammars { items: GrammarResponse[]; total: number; limit: number; offset: number }
+export interface PaginatedQuestions { items: QuestionWithAnswerResponse[]; total: number; limit: number; offset: number }
+export interface PaginatedParagraphs { items: ParagraphResponse[]; total: number; limit: number; offset: number }
 
 // ── Core fetch ───────────────────────────────────────────────────────────────
 
@@ -117,7 +134,7 @@ export const words = {
     request<WordResponse[]>(`/words/search?q=${encodeURIComponent(q)}&limit=${limit}`),
 
   byLevel: (level: number, limit = 50, offset = 0) =>
-    request<{ data: WordResponse[]; total: number }>(`/words/jlpt/${level}?limit=${limit}&offset=${offset}`),
+    request<PaginatedWords>(`/words/jlpt/${level}?limit=${limit}&offset=${offset}`),
 
   get: (id: string) =>
     request<WordResponse>(`/words/${id}`),
@@ -138,6 +155,9 @@ export const grammar = {
 export const srs = {
   due: (limit = 20) =>
     request<SRSCardResponse[]>(`/srs/due?limit=${limit}`),
+
+  dueCount: () =>
+    request<{ count: number }>("/srs/due/count"),
 
   addToDeck: (word_id: string) =>
     request<SRSCardResponse>("/srs/deck", { method: "POST", body: JSON.stringify({ word_id }) }),
@@ -207,26 +227,50 @@ export interface CreateParagraphRequest {
 }
 
 export const admin = {
+  listWords: (limit = 50, offset = 0) =>
+    request<PaginatedWords>(`/admin/words?limit=${limit}&offset=${offset}`),
+
   createWord: (body: CreateWordRequest) =>
     request<WordResponse>("/admin/words", { method: "POST", body: JSON.stringify(body) }),
+
+  updateWord: (id: string, body: Partial<CreateWordRequest>) =>
+    request<WordResponse>(`/admin/words/${id}`, { method: "PUT", body: JSON.stringify(body) }),
 
   deleteWord: (id: string) =>
     request<{ deleted: boolean }>(`/admin/words/${id}`, { method: "DELETE" }),
 
+  listGrammars: (limit = 50, offset = 0) =>
+    request<PaginatedGrammars>(`/admin/grammars?limit=${limit}&offset=${offset}`),
+
   createGrammar: (body: CreateGrammarRequest) =>
     request<GrammarResponse>("/admin/grammars", { method: "POST", body: JSON.stringify(body) }),
+
+  updateGrammar: (id: string, body: Partial<CreateGrammarRequest>) =>
+    request<GrammarResponse>(`/admin/grammars/${id}`, { method: "PUT", body: JSON.stringify(body) }),
 
   deleteGrammar: (id: string) =>
     request<{ deleted: boolean }>(`/admin/grammars/${id}`, { method: "DELETE" }),
 
+  listQuestions: (limit = 50, offset = 0) =>
+    request<PaginatedQuestions>(`/admin/questions?limit=${limit}&offset=${offset}`),
+
   createQuestion: (body: CreateQuestionRequest) =>
     request<QuestionWithAnswerResponse>("/admin/questions", { method: "POST", body: JSON.stringify(body) }),
+
+  updateQuestion: (id: string, body: Partial<CreateQuestionRequest>) =>
+    request<QuestionWithAnswerResponse>(`/admin/questions/${id}`, { method: "PUT", body: JSON.stringify(body) }),
 
   deleteQuestion: (id: string) =>
     request<{ deleted: boolean }>(`/admin/questions/${id}`, { method: "DELETE" }),
 
+  listParagraphs: (limit = 50, offset = 0) =>
+    request<PaginatedParagraphs>(`/admin/paragraphs?limit=${limit}&offset=${offset}`),
+
   createParagraph: (body: CreateParagraphRequest) =>
     request<ParagraphResponse>("/admin/paragraphs", { method: "POST", body: JSON.stringify(body) }),
+
+  updateParagraph: (id: string, body: Partial<CreateParagraphRequest>) =>
+    request<ParagraphResponse>(`/admin/paragraphs/${id}`, { method: "PUT", body: JSON.stringify(body) }),
 
   deleteParagraph: (id: string) =>
     request<{ deleted: boolean }>(`/admin/paragraphs/${id}`, { method: "DELETE" }),

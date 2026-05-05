@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { words as wordsApi, grammar as grammarApi } from "../api";
 import type { WordResponse, GrammarResponse } from "../api";
 import { useAuth } from "../auth";
-import { mockAnalytics } from "./mock-data";
 import { Paper, Divider, Tag, Button } from "./paper";
 
 export function HomePage({ onGoLearn, onGoTest }: { onGoLearn: () => void; onGoTest: () => void }) {
@@ -88,26 +87,25 @@ export function HomePage({ onGoLearn, onGoTest }: { onGoLearn: () => void; onGoT
 
 function Analytics() {
   const { user } = useAuth();
-  const a = mockAnalytics;
-  const max = Math.max(...a.weeklyMinutes);
+  const p = user?.study_progress;
+  const weekly = p?.weekly_minutes ?? [];
+  const max = weekly.length ? Math.max(...weekly, 1) : 1;
   const days = ["M", "T", "W", "T", "F", "S", "S"];
-  const level = user?.study_progress.jlpt_level ?? a.streak;
-  const cardsStudied = user?.study_progress.cards_studied ?? a.cardsLearned;
 
   return (
     <section>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Stat label="Current streak" value={`${a.streak} days`} sub={`longest · ${a.longestStreak}`} />
-        <Stat label="Cards learned" value={String(cardsStudied)} sub={`${a.cardsDueToday} due today`} />
-        <Stat label="Quizzes taken" value={String(a.quizzesTaken)} sub={`${Math.round(a.accuracy * 100)}% accuracy`} />
-        <Stat label="Level" value={`N${level}`} sub="current focus" />
+        <Stat label="Current streak" value={`${p?.streak ?? 0} days`} sub={`longest · ${p?.longest_streak ?? 0}`} />
+        <Stat label="Cards learned" value={String(p?.cards_studied ?? 0)} sub="studied" />
+        <Stat label="Quizzes taken" value={String(p?.quizzes_taken ?? 0)} sub={`${Math.round((p?.accuracy ?? 0) * 100)}% accuracy`} />
+        <Stat label="Level" value={`N${p?.jlpt_level ?? 5}`} sub="current focus" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Paper className="p-6">
           <p className="italic text-[#7a6a45]">Weekly study (minutes)</p>
           <div className="flex items-end gap-3 h-32 mt-4">
-            {a.weeklyMinutes.map((m, idx) => (
+            {(weekly.length ? weekly : Array(7).fill(0)).map((m: number, idx: number) => (
               <div key={idx} className="flex-1 flex flex-col items-center gap-1">
                 <div className="w-full bg-[#1f1a14]" style={{ height: `${(m / max) * 100}%` }} />
                 <span className="italic text-[#7a6a45]" style={{ fontSize: "0.8rem" }}>{days[idx]}</span>
@@ -119,7 +117,7 @@ function Analytics() {
         <Paper className="p-6">
           <p className="italic text-[#7a6a45]">Recent activity</p>
           <ul className="mt-4 space-y-3">
-            {a.recent.map((r, idx) => (
+            {(p?.recent_activity ?? []).map((r: { action: string; detail: string; date: string }, idx: number) => (
               <li key={idx} className="flex justify-between items-baseline border-b border-[#e5dabc] pb-2 last:border-b-0">
                 <div>
                   <p>{r.action}</p>
@@ -128,6 +126,9 @@ function Analytics() {
                 <span className="italic text-[#a89770]" style={{ fontSize: "0.85rem" }}>{r.date}</span>
               </li>
             ))}
+            {!(p?.recent_activity?.length) && (
+              <li className="italic text-[#a89770]" style={{ fontSize: "0.9rem" }}>No recent activity.</li>
+            )}
           </ul>
         </Paper>
       </div>
@@ -146,13 +147,15 @@ function Stat({ label, value, sub }: { label: string; value: string; sub: string
 }
 
 function QuickActions({ onGoLearn, onGoTest }: { onGoLearn: () => void; onGoTest: () => void }) {
+  const { user } = useAuth();
+  const cardsDue = user?.study_progress.cards_studied ?? 0;
   return (
     <section>
       <p className="text-[#7a6a45] italic mb-3">Continue</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Paper className="p-6">
           <h3 className="italic">Review</h3>
-          <p className="text-[#5e5132] mt-1">{mockAnalytics.cardsDueToday} cards due.</p>
+          <p className="text-[#5e5132] mt-1">{cardsDue} cards studied.</p>
           <div className="mt-4">
             <Button onClick={onGoLearn}>Start</Button>
           </div>
