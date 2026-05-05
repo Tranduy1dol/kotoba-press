@@ -48,17 +48,11 @@ function Pagination({ offset, total, limit, onChange }: {
     <div className="flex items-center justify-between mt-4 italic text-[#7a6a45]" style={{ fontSize: "0.9rem" }}>
       <span>{offset + 1}–{Math.min(offset + limit, total)} of {total}</span>
       <div className="flex gap-2">
-        <button
-          disabled={page === 0}
-          onClick={() => onChange(Math.max(0, offset - limit))}
-          className="px-3 py-1 border border-[#d9cfb8] disabled:opacity-40 hover:bg-[#efe6cf]"
-        >← prev</button>
+        <button disabled={page === 0} onClick={() => onChange(Math.max(0, offset - limit))}
+          className="px-3 py-1 border border-[#d9cfb8] disabled:opacity-40 hover:bg-[#efe6cf]">← prev</button>
         <span className="px-3 py-1">{page + 1} / {pages}</span>
-        <button
-          disabled={page >= pages - 1}
-          onClick={() => onChange(offset + limit)}
-          className="px-3 py-1 border border-[#d9cfb8] disabled:opacity-40 hover:bg-[#efe6cf]"
-        >next →</button>
+        <button disabled={page >= pages - 1} onClick={() => onChange(offset + limit)}
+          className="px-3 py-1 border border-[#d9cfb8] disabled:opacity-40 hover:bg-[#efe6cf]">next →</button>
       </div>
     </div>
   );
@@ -68,16 +62,10 @@ function Pagination({ offset, total, limit, onChange }: {
 
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ backgroundColor: "rgba(31,26,20,0.4)" }}
-      onClick={onClose}
-    >
-      <div
-        className="bg-[#fbf8f1] border border-[#cdbf9d] p-8 max-w-lg w-full mx-4 overflow-y-auto"
-        style={{ maxHeight: "80vh" }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backgroundColor: "rgba(31,26,20,0.4)" }} onClick={onClose}>
+      <div className="bg-[#fbf8f1] border border-[#cdbf9d] p-8 max-w-lg w-full mx-4 overflow-y-auto"
+        style={{ maxHeight: "80vh" }} onClick={(e) => e.stopPropagation()}>
         {children}
         <div className="mt-6 flex justify-end">
           <Button variant="ghost" onClick={onClose}>Close</Button>
@@ -95,11 +83,16 @@ function WordsAdmin() {
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<WordResponse | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editKanji, setEditKanji] = useState("");
+  const [editReading, setEditReading] = useState("");
+  const [editMeaning, setEditMeaning] = useState("");
+  const [editJlpt, setEditJlpt] = useState(5);
+  const [saving, setSaving] = useState(false);
   const [kanji, setKanji] = useState("");
   const [reading, setReading] = useState("");
   const [meaning, setMeaning] = useState("");
   const [jlpt, setJlpt] = useState(5);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const load = (o: number) => {
@@ -112,14 +105,37 @@ function WordsAdmin() {
 
   useEffect(() => { load(0); }, []);
 
+  const openEdit = (w: WordResponse) => {
+    setEditKanji(w.kanji[0]?.text ?? "");
+    setEditReading(w.readings[0]?.text ?? "");
+    setEditMeaning(w.sense[0]?.gloss[0]?.text ?? "");
+    setEditJlpt(w.jlpt);
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    if (!selected) return;
+    setSaving(true); setError("");
+    try {
+      const updated = await adminApi.updateWord(selected.id, {
+        jlpt: editJlpt,
+        kanji: [{ text: editKanji }],
+        readings: [{ text: editReading }],
+        senses: [{ gloss: [{ lang: "en", text: editMeaning }], pos: selected.sense[0]?.pos ?? ["n"] }],
+      });
+      setItems((prev) => prev.map((w) => w.id === updated.id ? updated : w));
+      setSelected(updated);
+      setEditing(false);
+    } catch { setError("Failed to save changes."); }
+    finally { setSaving(false); }
+  };
+
   const create = async () => {
     if (!kanji || !reading) return;
     setSaving(true); setError("");
     try {
       const w = await adminApi.createWord({
-        jlpt,
-        kanji: [{ text: kanji }],
-        readings: [{ text: reading }],
+        jlpt, kanji: [{ text: kanji }], readings: [{ text: reading }],
         senses: [{ gloss: [{ lang: "en", text: meaning }], pos: ["n"] }],
       });
       setItems((prev) => [w, ...prev]);
@@ -132,32 +148,55 @@ function WordsAdmin() {
     try {
       await adminApi.deleteWord(id);
       setItems((prev) => prev.filter((w) => w.id !== id));
-      if (selected?.id === id) setSelected(null);
+      setSelected(null);
     } catch { setError("Failed to delete word."); }
   };
 
   return (
     <>
       {selected && (
-        <Modal onClose={() => setSelected(null)}>
+        <Modal onClose={() => { setSelected(null); setEditing(false); }}>
           <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Word detail</p>
-          <p style={{ fontSize: "2.5rem", lineHeight: 1.1 }}>{selected.kanji[0]?.text}</p>
-          <p className="italic text-[#5e5132] mt-1">{selected.readings[0]?.text}</p>
-          <div className="flex gap-2 mt-3">
-            <Tag>N{selected.jlpt}</Tag>
-            {selected.is_common && <Tag>common</Tag>}
-          </div>
-          <div className="mt-4 space-y-2">
-            {selected.sense.map((s, i) => (
-              <div key={i} className="border-t border-[#e5dabc] pt-2">
-                <p>{s.gloss.map((g) => g.text).join("; ")}</p>
-                <p className="italic text-[#7a6a45]" style={{ fontSize: "0.85rem" }}>{s.pos.join(", ")}</p>
+          {editing ? (
+            <div className="mt-2 space-y-3">
+              <Field label="Kanji" value={editKanji} onChange={setEditKanji} />
+              <Field label="Reading" value={editReading} onChange={setEditReading} />
+              <Field label="Meaning (en)" value={editMeaning} onChange={setEditMeaning} />
+              <div>
+                <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
+                <select value={editJlpt} onChange={(e) => setEditJlpt(Number(e.target.value))}
+                  className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+                  {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
+                </select>
               </div>
-            ))}
-          </div>
-          <div className="mt-6 border-t border-[#e5dabc] pt-4">
-            <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
-          </div>
+              {error && <p className="italic text-[#8a4438]" style={{ fontSize: "0.85rem" }}>{error}</p>}
+              <div className="flex gap-3 mt-4">
+                <Button onClick={saveEdit} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+                <Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p style={{ fontSize: "2.5rem", lineHeight: 1.1 }}>{selected.kanji[0]?.text}</p>
+              <p className="italic text-[#5e5132] mt-1">{selected.readings[0]?.text}</p>
+              <div className="flex gap-2 mt-3">
+                <Tag>N{selected.jlpt}</Tag>
+                {selected.is_common && <Tag>common</Tag>}
+              </div>
+              <div className="mt-4 space-y-2">
+                {selected.sense.map((s, i) => (
+                  <div key={i} className="border-t border-[#e5dabc] pt-2">
+                    <p>{s.gloss.map((g) => g.text).join("; ")}</p>
+                    <p className="italic text-[#7a6a45]" style={{ fontSize: "0.85rem" }}>{s.pos.join(", ")}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 border-t border-[#e5dabc] pt-4 flex gap-3">
+                <Button onClick={() => openEdit(selected)}>Edit</Button>
+                <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
+              </div>
+            </>
+          )}
         </Modal>
       )}
 
@@ -170,7 +209,8 @@ function WordsAdmin() {
             <Field label="Meaning (en)" value={meaning} onChange={setMeaning} />
             <div className="mb-4">
               <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
-              <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+              <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))}
+                className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
                 {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
               </select>
             </div>
@@ -185,11 +225,7 @@ function WordsAdmin() {
           {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
           <div className="space-y-3">
             {items.map((w) => (
-              <button
-                key={w.id}
-                onClick={() => setSelected(w)}
-                className="w-full text-left"
-              >
+              <button key={w.id} onClick={() => { setSelected(w); setEditing(false); }} className="w-full text-left">
                 <Paper className="p-4 flex items-center justify-between hover:bg-[#efe6cf] transition-colors">
                   <div>
                     <p style={{ fontSize: "1.4rem" }}>{w.kanji[0]?.text} <span className="italic text-[#7a6a45]" style={{ fontSize: "1rem" }}>· {w.readings[0]?.text}</span></p>
@@ -215,11 +251,16 @@ function GrammarAdmin() {
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<GrammarResponse | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editPattern, setEditPattern] = useState("");
+  const [editMeaning, setEditMeaning] = useState("");
+  const [editFormation, setEditFormation] = useState("");
+  const [editJlpt, setEditJlpt] = useState(5);
+  const [saving, setSaving] = useState(false);
   const [pattern, setPattern] = useState("");
   const [meaning, setMeaning] = useState("");
   const [formation, setFormation] = useState("");
   const [jlpt, setJlpt] = useState(5);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const load = (o: number) => {
@@ -231,6 +272,25 @@ function GrammarAdmin() {
   };
 
   useEffect(() => { load(0); }, []);
+
+  const openEdit = (g: GrammarResponse) => {
+    setEditPattern(g.pattern); setEditMeaning(g.meaning);
+    setEditFormation(g.formation); setEditJlpt(g.jlpt);
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    if (!selected) return;
+    setSaving(true); setError("");
+    try {
+      const updated = await adminApi.updateGrammar(selected.id, {
+        jlpt: editJlpt, pattern: editPattern, meaning: editMeaning, formation: editFormation,
+      });
+      setItems((prev) => prev.map((g) => g.id === updated.id ? updated : g));
+      setSelected(updated); setEditing(false);
+    } catch { setError("Failed to save changes."); }
+    finally { setSaving(false); }
+  };
 
   const create = async () => {
     if (!pattern) return;
@@ -247,29 +307,52 @@ function GrammarAdmin() {
     try {
       await adminApi.deleteGrammar(id);
       setItems((prev) => prev.filter((g) => g.id !== id));
-      if (selected?.id === id) setSelected(null);
+      setSelected(null);
     } catch { setError("Failed to delete grammar entry."); }
   };
 
   return (
     <>
       {selected && (
-        <Modal onClose={() => setSelected(null)}>
+        <Modal onClose={() => { setSelected(null); setEditing(false); }}>
           <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Grammar detail</p>
-          <p style={{ fontSize: "1.8rem" }}>{selected.pattern}</p>
-          <Tag>N{selected.jlpt}</Tag>
-          <p className="mt-3">{selected.meaning}</p>
-          <p className="italic text-[#7a6a45] mt-1">{selected.formation}</p>
-          {selected.notes && <p className="mt-2 text-[#5e5132]">{selected.notes}</p>}
-          {selected.example[0] && (
-            <div className="mt-4 pl-4 border-l-2 border-[#cdbf9d] italic text-[#5e5132]">
-              <p>{selected.example[0].japanese}</p>
-              <p className="text-[#7a6a45]">{selected.example[0].translation}</p>
+          {editing ? (
+            <div className="mt-2 space-y-3">
+              <Field label="Pattern" value={editPattern} onChange={setEditPattern} />
+              <Field label="Meaning" value={editMeaning} onChange={setEditMeaning} />
+              <Field label="Formation" value={editFormation} onChange={setEditFormation} />
+              <div>
+                <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
+                <select value={editJlpt} onChange={(e) => setEditJlpt(Number(e.target.value))}
+                  className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+                  {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
+                </select>
+              </div>
+              {error && <p className="italic text-[#8a4438]" style={{ fontSize: "0.85rem" }}>{error}</p>}
+              <div className="flex gap-3 mt-4">
+                <Button onClick={saveEdit} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+                <Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+              </div>
             </div>
+          ) : (
+            <>
+              <p style={{ fontSize: "1.8rem" }}>{selected.pattern}</p>
+              <Tag>N{selected.jlpt}</Tag>
+              <p className="mt-3">{selected.meaning}</p>
+              <p className="italic text-[#7a6a45] mt-1">{selected.formation}</p>
+              {selected.notes && <p className="mt-2 text-[#5e5132]">{selected.notes}</p>}
+              {selected.example[0] && (
+                <div className="mt-4 pl-4 border-l-2 border-[#cdbf9d] italic text-[#5e5132]">
+                  <p>{selected.example[0].japanese}</p>
+                  <p className="text-[#7a6a45]">{selected.example[0].translation}</p>
+                </div>
+              )}
+              <div className="mt-6 border-t border-[#e5dabc] pt-4 flex gap-3">
+                <Button onClick={() => openEdit(selected)}>Edit</Button>
+                <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
+              </div>
+            </>
           )}
-          <div className="mt-6 border-t border-[#e5dabc] pt-4">
-            <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
-          </div>
         </Modal>
       )}
 
@@ -282,7 +365,8 @@ function GrammarAdmin() {
             <Field label="Formation" value={formation} onChange={setFormation} />
             <div className="mb-4">
               <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
-              <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+              <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))}
+                className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
                 {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
               </select>
             </div>
@@ -297,7 +381,7 @@ function GrammarAdmin() {
           {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
           <div className="space-y-3">
             {items.map((g) => (
-              <button key={g.id} onClick={() => setSelected(g)} className="w-full text-left">
+              <button key={g.id} onClick={() => { setSelected(g); setEditing(false); }} className="w-full text-left">
                 <Paper className="p-4 hover:bg-[#efe6cf] transition-colors">
                   <div className="flex justify-between items-baseline">
                     <p style={{ fontSize: "1.2rem" }}>{g.pattern}</p>
@@ -324,12 +408,16 @@ function QuestionsAdmin() {
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<QuestionWithAnswerResponse | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editPrompt, setEditPrompt] = useState("");
+  const [editChoices, setEditChoices] = useState(["", "", "", ""]);
+  const [editCorrectIndex, setEditCorrectIndex] = useState(0);
+  const [saving, setSaving] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [choices, setChoices] = useState(["", "", "", ""]);
   const [correctIndex, setCorrectIndex] = useState(0);
   const [section, setSection] = useState<"vocabulary" | "grammar" | "reading">("vocabulary");
   const [jlpt, setJlpt] = useState(5);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const load = (o: number) => {
@@ -341,6 +429,26 @@ function QuestionsAdmin() {
   };
 
   useEffect(() => { load(0); }, []);
+
+  const openEdit = (q: QuestionWithAnswerResponse) => {
+    setEditPrompt(q.prompt);
+    setEditChoices(q.choices.length === 4 ? [...q.choices] : [...q.choices, "", "", "", ""].slice(0, 4));
+    setEditCorrectIndex(q.correct_index);
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    if (!selected) return;
+    setSaving(true); setError("");
+    try {
+      const updated = await adminApi.updateQuestion(selected.id, {
+        prompt: editPrompt, choices: editChoices, correct_index: editCorrectIndex,
+      });
+      setItems((prev) => prev.map((q) => q.id === updated.id ? updated : q));
+      setSelected(updated); setEditing(false);
+    } catch { setError("Failed to save changes."); }
+    finally { setSaving(false); }
+  };
 
   const create = async () => {
     if (!prompt || choices.some((c) => !c)) return;
@@ -360,32 +468,58 @@ function QuestionsAdmin() {
     try {
       await adminApi.deleteQuestion(id);
       setItems((prev) => prev.filter((q) => q.id !== id));
-      if (selected?.id === id) setSelected(null);
+      setSelected(null);
     } catch { setError("Failed to delete question."); }
   };
 
   return (
     <>
       {selected && (
-        <Modal onClose={() => setSelected(null)}>
+        <Modal onClose={() => { setSelected(null); setEditing(false); }}>
           <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Question detail</p>
-          <p className="mt-2">{selected.prompt}</p>
-          <ul className="mt-4 space-y-2">
-            {selected.choices.map((c, i) => (
-              <li
-                key={i}
-                className={`px-3 py-2 border ${i === selected.correct_index ? "border-[#7a8950] bg-[#e8efd8]" : "border-[#d9cfb8]"}`}
-              >
-                <span className="italic text-[#7a6a45] mr-2">{String.fromCharCode(97 + i)}.</span>{c}
-              </li>
-            ))}
-          </ul>
-          {selected.explanation && (
-            <p className="mt-4 italic text-[#5e5132]">{selected.explanation}</p>
+          {editing ? (
+            <div className="mt-2 space-y-3">
+              <Field label="Prompt" value={editPrompt} onChange={setEditPrompt} />
+              {editChoices.map((c, i) => (
+                <div key={i}>
+                  <label className="block italic text-[#7a6a45] mb-1">
+                    Choice {String.fromCharCode(65 + i)} {i === editCorrectIndex && "✓"}
+                  </label>
+                  <input value={c}
+                    onChange={(e) => setEditChoices((prev) => prev.map((v, idx) => idx === i ? e.target.value : v))}
+                    className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14]" />
+                </div>
+              ))}
+              <div>
+                <label className="block italic text-[#7a6a45] mb-1">Correct answer</label>
+                <select value={editCorrectIndex} onChange={(e) => setEditCorrectIndex(Number(e.target.value))}
+                  className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+                  {editChoices.map((_, i) => <option key={i} value={i}>{String.fromCharCode(65 + i)}</option>)}
+                </select>
+              </div>
+              {error && <p className="italic text-[#8a4438]" style={{ fontSize: "0.85rem" }}>{error}</p>}
+              <div className="flex gap-3 mt-4">
+                <Button onClick={saveEdit} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+                <Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="mt-2">{selected.prompt}</p>
+              <ul className="mt-4 space-y-2">
+                {selected.choices.map((c, i) => (
+                  <li key={i} className={`px-3 py-2 border ${i === selected.correct_index ? "border-[#7a8950] bg-[#e8efd8]" : "border-[#d9cfb8]"}`}>
+                    <span className="italic text-[#7a6a45] mr-2">{String.fromCharCode(97 + i)}.</span>{c}
+                  </li>
+                ))}
+              </ul>
+              {selected.explanation && <p className="mt-4 italic text-[#5e5132]">{selected.explanation}</p>}
+              <div className="mt-6 border-t border-[#e5dabc] pt-4 flex gap-3">
+                <Button onClick={() => openEdit(selected)}>Edit</Button>
+                <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
+              </div>
+            </>
           )}
-          <div className="mt-6 border-t border-[#e5dabc] pt-4">
-            <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
-          </div>
         </Modal>
       )}
 
@@ -399,28 +533,29 @@ function QuestionsAdmin() {
                 <label className="block italic text-[#7a6a45] mb-1">
                   Choice {String.fromCharCode(65 + i)} {i === correctIndex && "✓"}
                 </label>
-                <input
-                  value={c}
+                <input value={c}
                   onChange={(e) => setChoices((prev) => prev.map((v, idx) => idx === i ? e.target.value : v))}
-                  className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14]"
-                />
+                  className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14]" />
               </div>
             ))}
             <div className="mb-3">
               <label className="block italic text-[#7a6a45] mb-1">Correct answer</label>
-              <select value={correctIndex} onChange={(e) => setCorrectIndex(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+              <select value={correctIndex} onChange={(e) => setCorrectIndex(Number(e.target.value))}
+                className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
                 {choices.map((_, i) => <option key={i} value={i}>{String.fromCharCode(65 + i)}</option>)}
               </select>
             </div>
             <div className="mb-3">
               <label className="block italic text-[#7a6a45] mb-1">Section</label>
-              <select value={section} onChange={(e) => setSection(e.target.value as typeof section)} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+              <select value={section} onChange={(e) => setSection(e.target.value as typeof section)}
+                className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
                 {["vocabulary", "grammar", "reading"].map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div className="mb-4">
               <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
-              <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+              <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))}
+                className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
                 {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
               </select>
             </div>
@@ -435,7 +570,7 @@ function QuestionsAdmin() {
           {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
           <div className="space-y-3">
             {items.map((q) => (
-              <button key={q.id} onClick={() => setSelected(q)} className="w-full text-left">
+              <button key={q.id} onClick={() => { setSelected(q); setEditing(false); }} className="w-full text-left">
                 <Paper className="p-4 hover:bg-[#efe6cf] transition-colors">
                   <p className="line-clamp-2">{q.prompt}</p>
                   <p className="italic text-[#7a6a45] mt-1" style={{ fontSize: "0.85rem" }}>
@@ -460,10 +595,14 @@ function ParagraphsAdmin() {
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<ParagraphResponse | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [editJlpt, setEditJlpt] = useState(5);
+  const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [jlpt, setJlpt] = useState(5);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const load = (o: number) => {
@@ -475,6 +614,24 @@ function ParagraphsAdmin() {
   };
 
   useEffect(() => { load(0); }, []);
+
+  const openEdit = (p: ParagraphResponse) => {
+    setEditTitle(p.title); setEditContent(p.content); setEditJlpt(p.jlpt);
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    if (!selected) return;
+    setSaving(true); setError("");
+    try {
+      const updated = await adminApi.updateParagraph(selected.id, {
+        title: editTitle, content: editContent, jlpt: editJlpt,
+      });
+      setItems((prev) => prev.map((p) => p.id === updated.id ? updated : p));
+      setSelected(updated); setEditing(false);
+    } catch { setError("Failed to save changes."); }
+    finally { setSaving(false); }
+  };
 
   const create = async () => {
     if (!title || content.length < 10) return;
@@ -491,36 +648,60 @@ function ParagraphsAdmin() {
     try {
       await adminApi.deleteParagraph(id);
       setItems((prev) => prev.filter((p) => p.id !== id));
-      if (selected?.id === id) setSelected(null);
+      setSelected(null);
     } catch { setError("Failed to delete paragraph."); }
   };
 
   return (
     <>
       {selected && (
-        <Modal onClose={() => setSelected(null)}>
+        <Modal onClose={() => { setSelected(null); setEditing(false); }}>
           <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Paragraph detail</p>
-          <div className="flex items-baseline gap-3 mt-1">
-            <p style={{ fontSize: "1.3rem" }}>{selected.title}</p>
-            <Tag>N{selected.jlpt}</Tag>
-          </div>
-          {selected.tags.length > 0 && (
-            <div className="flex gap-2 mt-2">
-              {selected.tags.map((t) => <Tag key={t}>{t}</Tag>)}
+          {editing ? (
+            <div className="mt-2 space-y-3">
+              <Field label="Title" value={editTitle} onChange={setEditTitle} />
+              <div>
+                <label className="block italic text-[#7a6a45] mb-1">Content</label>
+                <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={6}
+                  className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14] resize-none" />
+              </div>
+              <div>
+                <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
+                <select value={editJlpt} onChange={(e) => setEditJlpt(Number(e.target.value))}
+                  className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+                  {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
+                </select>
+              </div>
+              {error && <p className="italic text-[#8a4438]" style={{ fontSize: "0.85rem" }}>{error}</p>}
+              <div className="flex gap-3 mt-4">
+                <Button onClick={saveEdit} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+                <Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+              </div>
             </div>
+          ) : (
+            <>
+              <div className="flex items-baseline gap-3 mt-1">
+                <p style={{ fontSize: "1.3rem" }}>{selected.title}</p>
+                <Tag>N{selected.jlpt}</Tag>
+              </div>
+              {selected.tags.length > 0 && (
+                <div className="flex gap-2 mt-2">{selected.tags.map((t) => <Tag key={t}>{t}</Tag>)}</div>
+              )}
+              <p className="mt-4 text-[#3a2f22] leading-relaxed" style={{ whiteSpace: "pre-wrap" }}>{selected.content}</p>
+              {selected.questions.length > 0 && (
+                <div className="mt-4 border-t border-[#e5dabc] pt-4">
+                  <p className="italic text-[#7a6a45] mb-2" style={{ fontSize: "0.85rem" }}>{selected.questions.length} question(s)</p>
+                  {selected.questions.map((q, i) => (
+                    <p key={i} className="text-[#5e5132] mb-1" style={{ fontSize: "0.9rem" }}>{i + 1}. {q.prompt}</p>
+                  ))}
+                </div>
+              )}
+              <div className="mt-6 border-t border-[#e5dabc] pt-4 flex gap-3">
+                <Button onClick={() => openEdit(selected)}>Edit</Button>
+                <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
+              </div>
+            </>
           )}
-          <p className="mt-4 text-[#3a2f22] leading-relaxed" style={{ whiteSpace: "pre-wrap" }}>{selected.content}</p>
-          {selected.questions.length > 0 && (
-            <div className="mt-4 border-t border-[#e5dabc] pt-4">
-              <p className="italic text-[#7a6a45] mb-2" style={{ fontSize: "0.85rem" }}>{selected.questions.length} question(s)</p>
-              {selected.questions.map((q, i) => (
-                <p key={i} className="text-[#5e5132] mb-1" style={{ fontSize: "0.9rem" }}>{i + 1}. {q.prompt}</p>
-              ))}
-            </div>
-          )}
-          <div className="mt-6 border-t border-[#e5dabc] pt-4">
-            <Button variant="outline" onClick={() => remove(selected.id)}>Delete</Button>
-          </div>
         </Modal>
       )}
 
@@ -531,16 +712,13 @@ function ParagraphsAdmin() {
             <Field label="Title" value={title} onChange={setTitle} />
             <div className="mb-4">
               <label className="block italic text-[#7a6a45] mb-1">Content</label>
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={5}
-                className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14] resize-none"
-              />
+              <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={5}
+                className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14] resize-none" />
             </div>
             <div className="mb-4">
               <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
-              <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))} className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+              <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))}
+                className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
                 {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
               </select>
             </div>
@@ -555,7 +733,7 @@ function ParagraphsAdmin() {
           {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
           <div className="space-y-3">
             {items.map((p) => (
-              <button key={p.id} onClick={() => setSelected(p)} className="w-full text-left">
+              <button key={p.id} onClick={() => { setSelected(p); setEditing(false); }} className="w-full text-left">
                 <Paper className="p-4 hover:bg-[#efe6cf] transition-colors">
                   <div className="flex justify-between items-baseline">
                     <p style={{ fontSize: "1.1rem" }}>{p.title}</p>
@@ -582,11 +760,8 @@ function Field({ label, value, onChange }: { label: string; value: string; onCha
   return (
     <div className="mb-4">
       <label className="block italic text-[#7a6a45] mb-1">{label}</label>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14]"
-      />
+      <input value={value} onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14]" />
     </div>
   );
 }
