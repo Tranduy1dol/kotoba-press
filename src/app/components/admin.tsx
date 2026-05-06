@@ -3,7 +3,7 @@ import { admin as adminApi } from "../api";
 import type { WordResponse, GrammarResponse, QuestionWithAnswerResponse, ParagraphResponse } from "../api";
 import { Paper, Button, Tag } from "./paper";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 1000;
 
 type Tab = "words" | "grammar" | "questions" | "paragraphs";
 
