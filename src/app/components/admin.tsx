@@ -86,14 +86,14 @@ function WordsAdmin() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<WordResponse | null>(null);
   const [editing, setEditing] = useState(false);
-  const [editKanji, setEditKanji] = useState("");
-  const [editReading, setEditReading] = useState("");
-  const [editMeaning, setEditMeaning] = useState("");
+  const [editKanjis, setEditKanjis] = useState<string[]>([""]);
+  const [editReadings, setEditReadings] = useState<string[]>([""]);
+  const [editSenses, setEditSenses] = useState<string[]>([""]);
   const [editJlpt, setEditJlpt] = useState(5);
   const [saving, setSaving] = useState(false);
-  const [kanji, setKanji] = useState("");
-  const [reading, setReading] = useState("");
-  const [meaning, setMeaning] = useState("");
+  const [kanjis, setKanjis] = useState<string[]>([""]);
+  const [readings, setReadings] = useState<string[]>([""]);
+  const [senses, setSenses] = useState<string[]>([""]);
   const [jlpt, setJlpt] = useState(5);
   const [error, setError] = useState("");
 
@@ -108,9 +108,9 @@ function WordsAdmin() {
   useEffect(() => { load(0); }, []);
 
   const openEdit = (w: WordResponse) => {
-    setEditKanji(w.kanji[0]?.text ?? "");
-    setEditReading(w.readings[0]?.text ?? "");
-    setEditMeaning(w.sense[0]?.gloss[0]?.text ?? "");
+    setEditKanjis(w.kanji.map((k) => k.text).filter(Boolean) || [""]);
+    setEditReadings(w.readings.map((r) => r.text).filter(Boolean) || [""]);
+    setEditSenses(w.sense.map((s) => s.gloss[0]?.text ?? "").filter(Boolean) || [""]);
     setEditJlpt(w.jlpt);
     setEditing(true);
   };
@@ -121,9 +121,12 @@ function WordsAdmin() {
     try {
       const updated = await adminApi.updateWord(selected.id, {
         jlpt: editJlpt,
-        kanji: [{ text: editKanji }],
-        readings: [{ text: editReading }],
-        senses: [{ gloss: [{ lang: "en", text: editMeaning }], pos: selected.sense[0]?.pos ?? ["n"] }],
+        kanji: editKanjis.filter(Boolean).map((t) => ({ text: t })),
+        readings: editReadings.filter(Boolean).map((t) => ({ text: t })),
+        senses: editSenses.filter(Boolean).map((t, i) => ({
+          gloss: [{ lang: "en", text: t }],
+          pos: selected.sense[i]?.pos ?? selected.sense[0]?.pos ?? ["n"],
+        })),
       });
       setItems((prev) => prev.map((w) => w.id === updated.id ? updated : w));
       setSelected(updated);
@@ -133,15 +136,17 @@ function WordsAdmin() {
   };
 
   const create = async () => {
-    if (!kanji || !reading) return;
+    if (!kanjis[0] || !readings[0]) return;
     setSaving(true); setError("");
     try {
       const w = await adminApi.createWord({
-        jlpt, kanji: [{ text: kanji }], readings: [{ text: reading }],
-        senses: [{ gloss: [{ lang: "en", text: meaning }], pos: ["n"] }],
+        jlpt,
+        kanji: kanjis.filter(Boolean).map((t) => ({ text: t })),
+        readings: readings.filter(Boolean).map((t) => ({ text: t })),
+        senses: senses.filter(Boolean).map((t) => ({ gloss: [{ lang: "en", text: t }], pos: ["n"] })),
       });
       setItems((prev) => [w, ...prev]);
-      setKanji(""); setReading(""); setMeaning("");
+      setKanjis([""]); setReadings([""]); setSenses([""]);
     } catch { setError("Failed to create word."); }
     finally { setSaving(false); }
   };
@@ -161,9 +166,9 @@ function WordsAdmin() {
           <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Word detail</p>
           {editing ? (
             <div className="mt-2 space-y-3">
-              <Field label="Kanji" value={editKanji} onChange={setEditKanji} />
-              <Field label="Reading" value={editReading} onChange={setEditReading} />
-              <Field label="Meaning (en)" value={editMeaning} onChange={setEditMeaning} />
+              <MultiField label="Kanji" values={editKanjis} onChange={setEditKanjis} />
+              <MultiField label="Readings" values={editReadings} onChange={setEditReadings} />
+              <MultiField label="Meanings (en)" values={editSenses} onChange={setEditSenses} />
               <div>
                 <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
                 <select value={editJlpt} onChange={(e) => setEditJlpt(Number(e.target.value))}
@@ -205,9 +210,9 @@ function WordsAdmin() {
         <div className="w-72 shrink-0">
           <Paper className="p-6">
             <h3 className="italic mb-4">New Word</h3>
-            <Field label="Kanji" value={kanji} onChange={setKanji} />
-            <Field label="Reading" value={reading} onChange={setReading} />
-            <Field label="Meaning (en)" value={meaning} onChange={setMeaning} />
+            <MultiField label="Kanji" values={kanjis} onChange={setKanjis} />
+            <MultiField label="Readings" values={readings} onChange={setReadings} />
+            <MultiField label="Meanings (en)" values={senses} onChange={setSenses} />
             <div className="mb-4">
               <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
               <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))}
@@ -216,7 +221,7 @@ function WordsAdmin() {
               </select>
             </div>
             {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
-            <Button onClick={create} className="w-full" disabled={saving || !kanji || !reading}>
+            <Button onClick={create} className="w-full" disabled={saving || !kanjis[0] || !readings[0]}>
               {saving ? "Saving…" : "Add to corpus"}
             </Button>
           </Paper>
@@ -773,6 +778,31 @@ function Field({ label, value, onChange }: { label: string; value: string; onCha
       <label className="block italic text-[#7a6a45] mb-1">{label}</label>
       <input value={value} onChange={(e) => onChange(e.target.value)}
         className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14]" />
+    </div>
+  );
+}
+
+function MultiField({ label, values, onChange }: { label: string; values: string[]; onChange: (v: string[]) => void }) {
+  const update = (i: number, val: string) => onChange(values.map((v, idx) => idx === i ? val : v));
+  const add = () => onChange([...values, ""]);
+  const remove = (i: number) => onChange(values.length > 1 ? values.filter((_, idx) => idx !== i) : [""]);
+  return (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-1">
+        <label className="italic text-[#7a6a45]">{label}</label>
+        <button onClick={add} className="text-[#7a6a45] hover:text-[#1f1a14] px-1" style={{ fontSize: "1.1rem" }}>+</button>
+      </div>
+      <div className="space-y-1">
+        {values.map((v, i) => (
+          <div key={i} className="flex gap-1">
+            <input value={v} onChange={(e) => update(i, e.target.value)}
+              className="flex-1 bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14]" />
+            {values.length > 1 && (
+              <button onClick={() => remove(i)} className="px-2 text-[#a89770] hover:text-[#8a4438]">×</button>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
