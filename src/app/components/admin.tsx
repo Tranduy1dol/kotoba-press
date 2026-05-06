@@ -3,7 +3,7 @@ import { admin as adminApi } from "../api";
 import type { WordResponse, GrammarResponse, QuestionWithAnswerResponse, ParagraphResponse } from "../api";
 import { Paper, Button, Tag } from "./paper";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
 
 type Tab = "words" | "grammar" | "questions" | "paragraphs";
 
@@ -11,12 +11,12 @@ export function AdminPage() {
   const [tab, setTab] = useState<Tab>("words");
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <header className="mb-10 text-center">
+    <div className="max-w-5xl mx-auto flex flex-col" style={{ height: "calc(100vh - 96px)" }}>
+      <header className="mb-6 text-center shrink-0">
         <h1 className="italic mt-2" style={{ fontSize: "3rem", lineHeight: 1.1 }}>Admin</h1>
       </header>
 
-      <div className="flex gap-6 border-b border-[#cdbf9d] mb-6">
+      <div className="flex gap-6 border-b border-[#cdbf9d] mb-6 shrink-0">
         {(["words", "grammar", "questions", "paragraphs"] as Tab[]).map((t) => (
           <button
             key={t}
@@ -28,10 +28,12 @@ export function AdminPage() {
         ))}
       </div>
 
-      {tab === "words" && <WordsAdmin />}
-      {tab === "grammar" && <GrammarAdmin />}
-      {tab === "questions" && <QuestionsAdmin />}
-      {tab === "paragraphs" && <ParagraphsAdmin />}
+      <div className="flex-1 min-h-0">
+        {tab === "words" && <WordsAdmin />}
+        {tab === "grammar" && <GrammarAdmin />}
+        {tab === "questions" && <QuestionsAdmin />}
+        {tab === "paragraphs" && <ParagraphsAdmin />}
+      </div>
     </div>
   );
 }
@@ -153,7 +155,7 @@ function WordsAdmin() {
   };
 
   return (
-    <>
+    <div className="h-full flex flex-col">
       {selected && (
         <Modal onClose={() => { setSelected(null); setEditing(false); }}>
           <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Word detail</p>
@@ -199,8 +201,8 @@ function WordsAdmin() {
         </Modal>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-        <div className="md:col-span-1 sticky top-0 self-start">
+      <div className="flex gap-6 h-full">
+        <div className="w-72 shrink-0">
           <Paper className="p-6">
             <h3 className="italic mb-4">New Word</h3>
             <Field label="Kanji" value={kanji} onChange={setKanji} />
@@ -220,7 +222,7 @@ function WordsAdmin() {
           </Paper>
         </div>
 
-        <div className="md:col-span-2">
+        <div className="flex-1 overflow-y-auto">
           {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
           <div className="space-y-3">
             {items.map((w) => (
@@ -240,7 +242,7 @@ function WordsAdmin() {
           <Pagination offset={offset} total={total} limit={PAGE_SIZE} onChange={load} />
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -313,7 +315,7 @@ function GrammarAdmin() {
   };
 
   return (
-    <>
+    <div className="h-full flex flex-col">
       {selected && (
         <Modal onClose={() => { setSelected(null); setEditing(false); }}>
           <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Grammar detail</p>
@@ -356,8 +358,8 @@ function GrammarAdmin() {
         </Modal>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-        <div className="md:col-span-1 sticky top-0 self-start">
+      <div className="flex gap-6 h-full">
+        <div className="w-72 shrink-0">
           <Paper className="p-6">
             <h3 className="italic mb-4">New Grammar</h3>
             <Field label="Pattern" value={pattern} onChange={setPattern} />
@@ -377,7 +379,7 @@ function GrammarAdmin() {
           </Paper>
         </div>
 
-        <div className="md:col-span-2">
+        <div className="flex-1 overflow-y-auto">
           {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
           <div className="space-y-3">
             {items.map((g) => (
@@ -398,7 +400,7 @@ function GrammarAdmin() {
           <Pagination offset={offset} total={total} limit={PAGE_SIZE} onChange={load} />
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -475,7 +477,7 @@ function QuestionsAdmin() {
   };
 
   return (
-    <>
+    <div className="h-full flex flex-col">
       {selected && (
         <Modal onClose={() => { setSelected(null); setEditing(false); }}>
           <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Question detail</p>
@@ -524,8 +526,8 @@ function QuestionsAdmin() {
         </Modal>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-        <div className="md:col-span-1 sticky top-0 self-start">
+      <div className="flex gap-6 h-full">
+        <div className="w-72 shrink-0">
           <Paper className="p-6">
             <h3 className="italic mb-4">New Question</h3>
             <Field label="Prompt" value={prompt} onChange={setPrompt} />
@@ -567,7 +569,7 @@ function QuestionsAdmin() {
           </Paper>
         </div>
 
-        <div className="md:col-span-2">
+        <div className="flex-1 overflow-y-auto">
           {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
           <div className="space-y-3">
             {items.map((q) => (
@@ -591,7 +593,7 @@ function QuestionsAdmin() {
           <Pagination offset={offset} total={total} limit={PAGE_SIZE} onChange={load} />
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -661,7 +663,7 @@ function ParagraphsAdmin() {
   };
 
   return (
-    <>
+    <div className="h-full flex flex-col">
       {selected && (
         <Modal onClose={() => { setSelected(null); setEditing(false); }}>
           <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Paragraph detail</p>
@@ -712,8 +714,8 @@ function ParagraphsAdmin() {
         </Modal>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-        <div className="md:col-span-1 sticky top-0 self-start">
+      <div className="flex gap-6 h-full">
+        <div className="w-72 shrink-0">
           <Paper className="p-6">
             <h3 className="italic mb-4">New Paragraph</h3>
             <Field label="Title" value={title} onChange={setTitle} />
@@ -736,7 +738,7 @@ function ParagraphsAdmin() {
           </Paper>
         </div>
 
-        <div className="md:col-span-2">
+        <div className="flex-1 overflow-y-auto">
           {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
           <div className="space-y-3">
             {items.map((p) => (
@@ -759,7 +761,7 @@ function ParagraphsAdmin() {
           <Pagination offset={offset} total={total} limit={PAGE_SIZE} onChange={load} />
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
