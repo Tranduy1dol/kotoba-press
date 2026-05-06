@@ -261,13 +261,15 @@ function GrammarAdmin() {
   const [selected, setSelected] = useState<GrammarResponse | null>(null);
   const [editing, setEditing] = useState(false);
   const [editPattern, setEditPattern] = useState("");
-  const [editMeaning, setEditMeaning] = useState("");
+  const [editMeanings, setEditMeanings] = useState<string[]>([""]);
   const [editFormation, setEditFormation] = useState("");
+  const [editExamples, setEditExamples] = useState<{ japanese: string; reading: string; translation: string }[]>([]);
   const [editJlpt, setEditJlpt] = useState(5);
   const [saving, setSaving] = useState(false);
   const [pattern, setPattern] = useState("");
-  const [meaning, setMeaning] = useState("");
+  const [meanings, setMeanings] = useState<string[]>([""]);
   const [formation, setFormation] = useState("");
+  const [examples, setExamples] = useState<{ japanese: string; reading: string; translation: string }[]>([]);
   const [jlpt, setJlpt] = useState(5);
   const [error, setError] = useState("");
 
@@ -282,17 +284,32 @@ function GrammarAdmin() {
   useEffect(() => { load(0); }, []);
 
   const openEdit = (g: GrammarResponse) => {
-    setEditPattern(g.pattern); setEditMeaning(g.meaning);
-    setEditFormation(g.formation); setEditJlpt(g.jlpt);
+    setEditPattern(g.pattern);
+    setEditMeanings(g.meaning ? g.meaning.split("\n").filter(Boolean) : [""]);
+    setEditFormation(g.formation);
+    setEditExamples(g.example.length > 0 ? [...g.example] : []);
+    setEditJlpt(g.jlpt);
     setEditing(true);
   };
+
+  const updateExample = (
+    list: { japanese: string; reading: string; translation: string }[],
+    setList: (v: { japanese: string; reading: string; translation: string }[]) => void,
+    i: number,
+    field: "japanese" | "reading" | "translation",
+    val: string,
+  ) => setList(list.map((ex, idx) => idx === i ? { ...ex, [field]: val } : ex));
 
   const saveEdit = async () => {
     if (!selected) return;
     setSaving(true); setError("");
     try {
       const updated = await adminApi.updateGrammar(selected.id, {
-        jlpt: editJlpt, pattern: editPattern, meaning: editMeaning, formation: editFormation,
+        jlpt: editJlpt,
+        pattern: editPattern,
+        meaning: editMeanings.filter(Boolean).join("\n"),
+        formation: editFormation,
+        examples: editExamples.filter((e) => e.japanese),
       });
       setItems((prev) => prev.map((g) => g.id === updated.id ? updated : g));
       setSelected(updated); setEditing(false);
@@ -304,9 +321,14 @@ function GrammarAdmin() {
     if (!pattern) return;
     setSaving(true); setError("");
     try {
-      const g = await adminApi.createGrammar({ jlpt, pattern, meaning, formation });
+      const g = await adminApi.createGrammar({
+        jlpt, pattern,
+        meaning: meanings.filter(Boolean).join("\n"),
+        formation,
+        examples: examples.filter((e) => e.japanese),
+      });
       setItems((prev) => [g, ...prev]);
-      setPattern(""); setMeaning(""); setFormation("");
+      setPattern(""); setMeanings([""]); setFormation(""); setExamples([]);
     } catch { setError("Failed to create grammar entry."); }
     finally { setSaving(false); }
   };
@@ -319,6 +341,39 @@ function GrammarAdmin() {
     } catch { setError("Failed to delete grammar entry."); }
   };
 
+  const ExampleFields = ({
+    exList,
+    setExList,
+  }: {
+    exList: { japanese: string; reading: string; translation: string }[];
+    setExList: (v: { japanese: string; reading: string; translation: string }[]) => void;
+  }) => (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-1">
+        <label className="italic text-[#7a6a45]">Examples</label>
+        <button onClick={() => setExList([...exList, { japanese: "", reading: "", translation: "" }])}
+          className="text-[#7a6a45] hover:text-[#1f1a14] px-1" style={{ fontSize: "1.1rem" }}>+</button>
+      </div>
+      <div className="space-y-3">
+        {exList.map((ex, i) => (
+          <div key={i} className="border border-[#d9cfb8] p-3 space-y-1">
+            <div className="flex justify-between items-center mb-1">
+              <span className="italic text-[#a89770]" style={{ fontSize: "0.8rem" }}>Example {i + 1}</span>
+              <button onClick={() => setExList(exList.filter((_, idx) => idx !== i))}
+                className="text-[#a89770] hover:text-[#8a4438]">×</button>
+            </div>
+            {(["japanese", "reading", "translation"] as const).map((field) => (
+              <input key={field} value={ex[field]} placeholder={field}
+                onChange={(e) => updateExample(exList, setExList, i, field, e.target.value)}
+                className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-2 py-1 outline-none focus:border-[#1f1a14]"
+                style={{ fontSize: "0.9rem" }} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="h-full flex flex-col">
       {selected && (
@@ -327,8 +382,9 @@ function GrammarAdmin() {
           {editing ? (
             <div className="mt-2 space-y-3">
               <Field label="Pattern" value={editPattern} onChange={setEditPattern} />
-              <Field label="Meaning" value={editMeaning} onChange={setEditMeaning} />
+              <MultiField label="Meanings" values={editMeanings} onChange={setEditMeanings} />
               <Field label="Formation" value={editFormation} onChange={setEditFormation} />
+              <ExampleFields exList={editExamples} setExList={setEditExamples} />
               <div>
                 <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
                 <select value={editJlpt} onChange={(e) => setEditJlpt(Number(e.target.value))}
@@ -346,13 +402,22 @@ function GrammarAdmin() {
             <>
               <p style={{ fontSize: "1.8rem" }}>{selected.pattern}</p>
               <Tag>N{selected.jlpt}</Tag>
-              <p className="mt-3">{selected.meaning}</p>
-              <p className="italic text-[#7a6a45] mt-1">{selected.formation}</p>
+              <div className="mt-3 space-y-1">
+                {selected.meaning.split("\n").filter(Boolean).map((m, i) => (
+                  <p key={i}>{m}</p>
+                ))}
+              </div>
+              <p className="italic text-[#7a6a45] mt-2">{selected.formation}</p>
               {selected.notes && <p className="mt-2 text-[#5e5132]">{selected.notes}</p>}
-              {selected.example[0] && (
-                <div className="mt-4 pl-4 border-l-2 border-[#cdbf9d] italic text-[#5e5132]">
-                  <p>{selected.example[0].japanese}</p>
-                  <p className="text-[#7a6a45]">{selected.example[0].translation}</p>
+              {selected.example.length > 0 && (
+                <div className="mt-4 space-y-3">
+                  {selected.example.map((ex, i) => (
+                    <div key={i} className="pl-4 border-l-2 border-[#cdbf9d] italic text-[#5e5132]">
+                      <p>{highlightPattern(ex.japanese, selected.pattern)}</p>
+                      {ex.reading && <p className="text-[#a89770]" style={{ fontSize: "0.85rem" }}>{highlightPattern(ex.reading, selected.pattern)}</p>}
+                      <p className="text-[#7a6a45]">{ex.translation}</p>
+                    </div>
+                  ))}
                 </div>
               )}
               <div className="mt-6 border-t border-[#e5dabc] pt-4 flex gap-3">
@@ -364,12 +429,13 @@ function GrammarAdmin() {
       )}
 
       <div className="flex gap-6 h-full">
-        <div className="w-72 shrink-0">
+        <div className="w-72 shrink-0 overflow-y-auto">
           <Paper className="p-6">
             <h3 className="italic mb-4">New Grammar</h3>
             <Field label="Pattern" value={pattern} onChange={setPattern} />
-            <Field label="Meaning" value={meaning} onChange={setMeaning} />
+            <MultiField label="Meanings" values={meanings} onChange={setMeanings} />
             <Field label="Formation" value={formation} onChange={setFormation} />
+            <ExampleFields exList={examples} setExList={setExamples} />
             <div className="mb-4">
               <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
               <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))}
@@ -396,7 +462,7 @@ function GrammarAdmin() {
                       <Button variant="outline" onClick={() => remove(g.id)}>Delete</Button>
                     </div>
                   </div>
-                  <p className="text-[#5e5132]">{g.meaning}</p>
+                  <p className="text-[#5e5132]">{g.meaning.split("\n")[0]}</p>
                   <p className="italic text-[#7a6a45]" style={{ fontSize: "0.85rem" }}>{g.formation}</p>
                 </Paper>
               </button>
@@ -611,6 +677,7 @@ function ParagraphsAdmin() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<ParagraphResponse | null>(null);
   const [editing, setEditing] = useState(false);
+  const [addingQuestion, setAddingQuestion] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editJlpt, setEditJlpt] = useState(5);
@@ -619,6 +686,9 @@ function ParagraphsAdmin() {
   const [content, setContent] = useState("");
   const [jlpt, setJlpt] = useState(5);
   const [error, setError] = useState("");
+  const [qPrompt, setQPrompt] = useState("");
+  const [qChoices, setQChoices] = useState(["", "", "", ""]);
+  const [qCorrect, setQCorrect] = useState(0);
 
   const load = (o: number) => {
     setLoading(true);
@@ -632,7 +702,7 @@ function ParagraphsAdmin() {
 
   const openEdit = (p: ParagraphResponse) => {
     setEditTitle(p.title); setEditContent(p.content); setEditJlpt(p.jlpt);
-    setEditing(true);
+    setEditing(true); setAddingQuestion(false);
   };
 
   const saveEdit = async () => {
@@ -645,6 +715,33 @@ function ParagraphsAdmin() {
       setItems((prev) => prev.map((p) => p.id === updated.id ? updated : p));
       setSelected(updated); setEditing(false);
     } catch { setError("Failed to save changes."); }
+    finally { setSaving(false); }
+  };
+
+  const addQuestion = async () => {
+    if (!selected || !qPrompt || qChoices.some((c) => !c)) return;
+    setSaving(true); setError("");
+    try {
+      const updated = await adminApi.updateParagraph(selected.id, {
+        title: selected.title,
+        content: selected.content,
+        jlpt: selected.jlpt,
+        questions: [
+          ...selected.questions.map((q) => ({
+            jlpt: selected.jlpt,
+            type: "multiple_choice" as const,
+            prompt: q.prompt,
+            choices: q.choices,
+            correct_index: (q as { correct_index?: number }).correct_index ?? 0,
+          })),
+          { jlpt: selected.jlpt, type: "multiple_choice" as const, prompt: qPrompt, choices: qChoices, correct_index: qCorrect },
+        ],
+      });
+      setItems((prev) => prev.map((p) => p.id === updated.id ? updated : p));
+      setSelected(updated);
+      setQPrompt(""); setQChoices(["", "", "", ""]); setQCorrect(0);
+      setAddingQuestion(false);
+    } catch { setError("Failed to add question."); }
     finally { setSaving(false); }
   };
 
@@ -670,7 +767,7 @@ function ParagraphsAdmin() {
   return (
     <div className="h-full flex flex-col">
       {selected && (
-        <Modal onClose={() => { setSelected(null); setEditing(false); }}>
+        <Modal onClose={() => { setSelected(null); setEditing(false); setAddingQuestion(false); }}>
           <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Paragraph detail</p>
           {editing ? (
             <div className="mt-2 space-y-3">
@@ -693,6 +790,35 @@ function ParagraphsAdmin() {
                 <Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
               </div>
             </div>
+          ) : addingQuestion ? (
+            <div className="mt-2 space-y-3">
+              <p className="italic text-[#7a6a45]" style={{ fontSize: "0.85rem" }}>New question for "{selected.title}"</p>
+              <Field label="Prompt" value={qPrompt} onChange={setQPrompt} />
+              {qChoices.map((c, i) => (
+                <div key={i}>
+                  <label className="block italic text-[#7a6a45] mb-1">
+                    Choice {String.fromCharCode(65 + i)} {i === qCorrect && "✓"}
+                  </label>
+                  <input value={c}
+                    onChange={(e) => setQChoices((prev) => prev.map((v, idx) => idx === i ? e.target.value : v))}
+                    className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14]" />
+                </div>
+              ))}
+              <div>
+                <label className="block italic text-[#7a6a45] mb-1">Correct answer</label>
+                <select value={qCorrect} onChange={(e) => setQCorrect(Number(e.target.value))}
+                  className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+                  {qChoices.map((_, i) => <option key={i} value={i}>{String.fromCharCode(65 + i)}</option>)}
+                </select>
+              </div>
+              {error && <p className="italic text-[#8a4438]" style={{ fontSize: "0.85rem" }}>{error}</p>}
+              <div className="flex gap-3 mt-4">
+                <Button onClick={addQuestion} disabled={saving || !qPrompt || qChoices.some((c) => !c)}>
+                  {saving ? "Saving…" : "Add question"}
+                </Button>
+                <Button variant="outline" onClick={() => setAddingQuestion(false)}>Cancel</Button>
+              </div>
+            </div>
           ) : (
             <>
               <div className="flex items-baseline gap-3 mt-1">
@@ -713,6 +839,7 @@ function ParagraphsAdmin() {
               )}
               <div className="mt-6 border-t border-[#e5dabc] pt-4 flex gap-3">
                 <Button onClick={() => openEdit(selected)}>Edit</Button>
+                <Button variant="outline" onClick={() => setAddingQuestion(true)}>+ Question</Button>
               </div>
             </>
           )}
@@ -747,7 +874,7 @@ function ParagraphsAdmin() {
           {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
           <div className="space-y-3">
             {items.map((p) => (
-              <button key={p.id} onClick={() => { setSelected(p); setEditing(false); }} className="w-full text-left">
+              <button key={p.id} onClick={() => { setSelected(p); setEditing(false); setAddingQuestion(false); }} className="w-full text-left">
                 <Paper className="p-4 hover:bg-[#efe6cf] transition-colors">
                   <div className="flex justify-between items-center">
                     <p style={{ fontSize: "1.1rem" }}>{p.title}</p>
@@ -779,6 +906,25 @@ function Field({ label, value, onChange }: { label: string; value: string; onCha
       <input value={value} onChange={(e) => onChange(e.target.value)}
         className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14]" />
     </div>
+  );
+}
+
+function highlightPattern(text: string, pattern: string): React.ReactNode {
+  if (!pattern) return text;
+  // Strip 〜 prefix common in grammar patterns before matching
+  const core = pattern.replace(/^[〜～]/, "").trim();
+  if (!core) return text;
+  const escaped = core.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = text.split(new RegExp(`(${escaped})`, "g"));
+  if (parts.length === 1) return text;
+  return (
+    <>
+      {parts.map((p, i) =>
+        i % 2 === 1
+          ? <mark key={i} style={{ background: "#e8efd8", color: "#3a4a1a", padding: "0 2px" }}>{p}</mark>
+          : p
+      )}
+    </>
   );
 }
 
