@@ -23,7 +23,7 @@ export function AdminPage() {
             onClick={() => setTab(t)}
             className={`pb-2 px-1 italic capitalize ${tab === t ? "border-b-2 border-[#1f1a14] text-[#1f1a14]" : "text-[#7a6a45]"}`}
           >
-            {t}
+            {t === "words" ? "Từ vựng" : t === "grammar" ? "Ngữ pháp" : t === "questions" ? "Câu hỏi" : "Đoạn văn"}
           </button>
         ))}
       </div>
@@ -48,13 +48,13 @@ function Pagination({ offset, total, limit, onChange }: {
   if (pages <= 1) return null;
   return (
     <div className="flex items-center justify-between mt-4 italic text-[#7a6a45]" style={{ fontSize: "0.9rem" }}>
-      <span>{offset + 1}–{Math.min(offset + limit, total)} of {total}</span>
+      <span>{offset + 1}–{Math.min(offset + limit, total)} / {total}</span>
       <div className="flex gap-2">
         <button disabled={page === 0} onClick={() => onChange(Math.max(0, offset - limit))}
-          className="px-3 py-1 border border-[#d9cfb8] disabled:opacity-40 hover:bg-[#efe6cf]">← prev</button>
+          className="px-3 py-1 border border-[#d9cfb8] disabled:opacity-40 hover:bg-[#efe6cf]">← trước</button>
         <span className="px-3 py-1">{page + 1} / {pages}</span>
         <button disabled={page >= pages - 1} onClick={() => onChange(offset + limit)}
-          className="px-3 py-1 border border-[#d9cfb8] disabled:opacity-40 hover:bg-[#efe6cf]">next →</button>
+          className="px-3 py-1 border border-[#d9cfb8] disabled:opacity-40 hover:bg-[#efe6cf]">tiếp →</button>
       </div>
     </div>
   );
@@ -70,7 +70,7 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
         style={{ maxHeight: "80vh" }} onClick={(e) => e.stopPropagation()}>
         {children}
         <div className="mt-6 flex justify-end">
-          <Button variant="ghost" onClick={onClose}>Close</Button>
+          <Button variant="ghost" onClick={onClose}>Đóng</Button>
         </div>
       </div>
     </div>
@@ -88,7 +88,7 @@ const emptySense = (): SenseEntry => ({ gloss: "", pos: "noun" });
 function JlptSelect({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
     <div className="mb-4">
-      <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
+      <label className="block italic text-[#7a6a45] mb-1">Cấp độ JLPT</label>
       <select value={value} onChange={(e) => onChange(Number(e.target.value))}
         className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
         <option value={0}>-- select --</option>
@@ -120,7 +120,7 @@ function WordsAdmin() {
     setLoading(true);
     adminApi.listWords(PAGE_SIZE, o)
       .then((res) => { setItems(res.items ?? []); setTotal(res.total); setOffset(o); })
-      .catch(() => setError("Could not load words."))
+      .catch(() => setError("Không thể tải từ vựng."))
       .finally(() => setLoading(false));
   };
 
@@ -150,7 +150,7 @@ function WordsAdmin() {
       setItems((prev) => prev.map((w) => w.id === updated.id ? updated : w));
       setSelected(updated);
       setEditing(false);
-    } catch { setError("Failed to save changes."); }
+    } catch { setError("Không thể lưu thay đổi."); }
     finally { setSaving(false); }
   };
 
@@ -169,7 +169,7 @@ function WordsAdmin() {
       });
       setItems((prev) => [w, ...prev]);
       setKanjis([emptyKanji()]); setReadings([""]); setSenses([emptySense()]); setJlpt(0);
-    } catch { setError("Failed to create word."); }
+    } catch { setError("Không thể tạo từ vựng."); }
     finally { setSaving(false); }
   };
 
@@ -178,24 +178,24 @@ function WordsAdmin() {
       await adminApi.deleteWord(id);
       setItems((prev) => prev.filter((w) => w.id !== id));
       setSelected(null);
-    } catch { setError("Failed to delete word."); }
+    } catch { setError("Không thể xóa từ vựng."); }
   };
 
   return (
     <div className="h-full flex flex-col">
       {selected && (
         <Modal onClose={() => { setSelected(null); setEditing(false); }}>
-          <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Word detail</p>
+          <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Chi tiết từ vựng</p>
           {editing ? (
             <div className="mt-2 space-y-4">
               <KanjiFields values={editKanjis} onChange={setEditKanjis} />
-              <MultiField label="Readings" values={editReadings} onChange={setEditReadings} />
+              <MultiField label="Phát âm" values={editReadings} onChange={setEditReadings} />
               <SenseFields values={editSenses} onChange={setEditSenses} />
               <JlptSelect value={editJlpt} onChange={setEditJlpt} />
               {error && <p className="italic text-[#8a4438]" style={{ fontSize: "0.85rem" }}>{error}</p>}
               <div className="flex gap-3">
-                <Button onClick={saveEdit} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
-                <Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+                <Button onClick={saveEdit} disabled={saving}>{saving ? "Đang lưu…" : "Lưu"}</Button>
+                <Button variant="outline" onClick={() => setEditing(false)}>Hủy</Button>
               </div>
             </div>
           ) : (
@@ -204,7 +204,7 @@ function WordsAdmin() {
               <p className="italic text-[#5e5132] mt-1">{selected.readings[0]?.text}</p>
               <div className="flex gap-2 mt-3">
                 <Tag>N{selected.jlpt}</Tag>
-                {selected.is_common && <Tag>common</Tag>}
+                {selected.is_common && <Tag>phổ biến</Tag>}
               </div>
               <div className="mt-4 space-y-2">
                 {selected.sense.map((s, i) => (
@@ -215,7 +215,7 @@ function WordsAdmin() {
                 ))}
               </div>
               <div className="mt-6 border-t border-[#e5dabc] pt-4 flex gap-3">
-                <Button onClick={() => openEdit(selected)}>Edit</Button>
+                <Button onClick={() => openEdit(selected)}>Chỉnh sửa</Button>
               </div>
             </>
           )}
@@ -225,20 +225,20 @@ function WordsAdmin() {
       <div className="flex gap-6 h-full">
         <div className="w-72 shrink-0">
           <Paper className="p-6">
-            <h3 className="italic mb-4">New Word</h3>
+            <h3 className="italic mb-4">Thêm mới</h3>
             <KanjiFields values={kanjis} onChange={setKanjis} />
-            <MultiField label="Readings" values={readings} onChange={setReadings} />
+            <MultiField label="Cách đọc" values={readings} onChange={setReadings} />
             <SenseFields values={senses} onChange={setSenses} />
             <JlptSelect value={jlpt} onChange={setJlpt} />
             {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
             <Button onClick={create} className="w-full" disabled={saving || !kanjis[0]?.text || !readings[0]}>
-              {saving ? "Saving…" : "Add to corpus"}
+              {saving ? "Đang lưu…" : "Thêm vào từ điển"}
             </Button>
           </Paper>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
+          {loading && <p className="italic text-[#7a6a45]">Đang tải…</p>}
           <div className="space-y-3">
             {items.map((w) => (
               <button key={w.id} onClick={() => { setSelected(w); setEditing(false); }} className="w-full text-left">
@@ -248,7 +248,7 @@ function WordsAdmin() {
                     <p className="text-[#5e5132]">{w.sense[0]?.gloss[0]?.text}</p>
                   </div>
                   <div onClick={(e) => e.stopPropagation()}>
-                    <Button variant="outline" onClick={() => remove(w.id)}>Delete</Button>
+                    <Button variant="outline" onClick={() => remove(w.id)}>Xóa</Button>
                   </div>
                 </Paper>
               </button>
@@ -287,7 +287,7 @@ function GrammarAdmin() {
     setLoading(true);
     adminApi.listGrammars(PAGE_SIZE, o)
       .then((res) => { setItems(res.items ?? []); setTotal(res.total); setOffset(o); })
-      .catch(() => setError("Could not load grammar."))
+      .catch(() => setError("Không thể tải ngữ pháp."))
       .finally(() => setLoading(false));
   };
 
@@ -323,7 +323,7 @@ function GrammarAdmin() {
       });
       setItems((prev) => prev.map((g) => g.id === updated.id ? updated : g));
       setSelected(updated); setEditing(false);
-    } catch { setError("Failed to save changes."); }
+    } catch { setError("Không thể lưu thay đổi."); }
     finally { setSaving(false); }
   };
 
@@ -339,7 +339,7 @@ function GrammarAdmin() {
       });
       setItems((prev) => [g, ...prev]);
       setPattern(""); setMeanings([""]); setFormation(""); setExamples([]);
-    } catch { setError("Failed to create grammar entry."); }
+    } catch { setError("Không thể tạo mục ngữ pháp."); }
     finally { setSaving(false); }
   };
 
@@ -348,7 +348,7 @@ function GrammarAdmin() {
       await adminApi.deleteGrammar(id);
       setItems((prev) => prev.filter((g) => g.id !== id));
       setSelected(null);
-    } catch { setError("Failed to delete grammar entry."); }
+    } catch { setError("Không thể xóa mục ngữ pháp."); }
   };
 
   const ExampleFields = ({
@@ -360,7 +360,7 @@ function GrammarAdmin() {
   }) => (
     <div className="mb-4">
       <div className="flex items-center justify-between mb-1">
-        <label className="italic text-[#7a6a45]">Examples</label>
+        <label className="italic text-[#7a6a45]">Ví dụ</label>
         <button onClick={() => setExList([...exList, { japanese: "", reading: "", translation: "" }])}
           className="text-[#7a6a45] hover:text-[#1f1a14] px-1" style={{ fontSize: "1.1rem" }}>+</button>
       </div>
@@ -368,12 +368,13 @@ function GrammarAdmin() {
         {exList.map((ex, i) => (
           <div key={i} className="border border-[#d9cfb8] p-3 space-y-1">
             <div className="flex justify-between items-center mb-1">
-              <span className="italic text-[#a89770]" style={{ fontSize: "0.8rem" }}>Example {i + 1}</span>
+              <span className="italic text-[#a89770]" style={{ fontSize: "0.8rem" }}>Ví dụ {i + 1}</span>
               <button onClick={() => setExList(exList.filter((_, idx) => idx !== i))}
                 className="text-[#a89770] hover:text-[#8a4438]">×</button>
             </div>
             {(["japanese", "reading", "translation"] as const).map((field) => (
-              <input key={field} value={ex[field]} placeholder={field}
+              <input key={field} value={ex[field]}
+                placeholder={field === "japanese" ? "tiếng Nhật" : field === "reading" ? "cách đọc" : "bản dịch"}
                 onChange={(e) => updateExample(exList, setExList, i, field, e.target.value)}
                 className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-2 py-1 outline-none focus:border-[#1f1a14]"
                 style={{ fontSize: "0.9rem" }} />
@@ -388,12 +389,12 @@ function GrammarAdmin() {
     <div className="h-full flex flex-col">
       {selected && (
         <Modal onClose={() => { setSelected(null); setEditing(false); }}>
-          <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Grammar detail</p>
+          <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Chi tiết ngữ pháp</p>
           {editing ? (
             <div className="mt-2 space-y-3">
-              <Field label="Pattern" value={editPattern} onChange={setEditPattern} />
-              <MultiField label="Meanings" values={editMeanings} onChange={setEditMeanings} />
-              <Field label="Formation" value={editFormation} onChange={setEditFormation} />
+              <Field label="Mẫu câu" value={editPattern} onChange={setEditPattern} />
+              <MultiField label="Nghĩa" values={editMeanings} onChange={setEditMeanings} />
+              <Field label="Cấu trúc" value={editFormation} onChange={setEditFormation} />
               <ExampleFields exList={editExamples} setExList={setEditExamples} />
               <div>
                 <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
@@ -404,8 +405,8 @@ function GrammarAdmin() {
               </div>
               {error && <p className="italic text-[#8a4438]" style={{ fontSize: "0.85rem" }}>{error}</p>}
               <div className="flex gap-3 mt-4">
-                <Button onClick={saveEdit} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
-                <Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+                <Button onClick={saveEdit} disabled={saving}>{saving ? "Đang lưu…" : "Lưu"}</Button>
+                <Button variant="outline" onClick={() => setEditing(false)}>Hủy</Button>
               </div>
             </div>
           ) : (
@@ -431,7 +432,7 @@ function GrammarAdmin() {
                 </div>
               )}
               <div className="mt-6 border-t border-[#e5dabc] pt-4 flex gap-3">
-                <Button onClick={() => openEdit(selected)}>Edit</Button>
+                <Button onClick={() => openEdit(selected)}>Chỉnh sửa</Button>
               </div>
             </>
           )}
@@ -441,10 +442,10 @@ function GrammarAdmin() {
       <div className="flex gap-6 h-full">
         <div className="w-72 shrink-0 overflow-y-auto">
           <Paper className="p-6">
-            <h3 className="italic mb-4">New Grammar</h3>
-            <Field label="Pattern" value={pattern} onChange={setPattern} />
-            <MultiField label="Meanings" values={meanings} onChange={setMeanings} />
-            <Field label="Formation" value={formation} onChange={setFormation} />
+            <h3 className="italic mb-4">Thêm ngữ pháp mới</h3>
+            <Field label="Mẫu câu" value={pattern} onChange={setPattern} />
+            <MultiField label="Nghĩa" values={meanings} onChange={setMeanings} />
+            <Field label="Cấu trúc" value={formation} onChange={setFormation} />
             <ExampleFields exList={examples} setExList={setExamples} />
             <div className="mb-4">
               <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
@@ -455,13 +456,13 @@ function GrammarAdmin() {
             </div>
             {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
             <Button onClick={create} className="w-full" disabled={saving || !pattern}>
-              {saving ? "Saving…" : "Add grammar"}
+              {saving ? "Đang lưu…" : "Thêm ngữ pháp"}
             </Button>
           </Paper>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
+          {loading && <p className="italic text-[#7a6a45]">Đang tải…</p>}
           <div className="space-y-3">
             {items.map((g) => (
               <button key={g.id} onClick={() => { setSelected(g); setEditing(false); }} className="w-full text-left">
@@ -469,7 +470,7 @@ function GrammarAdmin() {
                   <div className="flex justify-between items-center">
                     <p style={{ fontSize: "1.2rem" }}>{g.pattern}</p>
                     <div onClick={(e) => e.stopPropagation()}>
-                      <Button variant="outline" onClick={() => remove(g.id)}>Delete</Button>
+                      <Button variant="outline" onClick={() => remove(g.id)}>Xóa</Button>
                     </div>
                   </div>
                   <p className="text-[#5e5132]">{g.meaning.split("\n")[0]}</p>
@@ -509,7 +510,7 @@ function QuestionsAdmin() {
     setLoading(true);
     adminApi.listQuestions(PAGE_SIZE, o)
       .then((res) => { setItems(res.items ?? []); setTotal(res.total); setOffset(o); })
-      .catch(() => setError("Could not load questions."))
+      .catch(() => setError("Không thể tải câu hỏi."))
       .finally(() => setLoading(false));
   };
 
@@ -531,7 +532,7 @@ function QuestionsAdmin() {
       });
       setItems((prev) => prev.map((q) => q.id === updated.id ? updated : q));
       setSelected(updated); setEditing(false);
-    } catch { setError("Failed to save changes."); }
+    } catch { setError("Không thể lưu thay đổi."); }
     finally { setSaving(false); }
   };
 
@@ -545,7 +546,7 @@ function QuestionsAdmin() {
       });
       setItems((prev) => [q, ...prev]);
       setPrompt(""); setChoices(["", "", "", ""]); setCorrectIndex(0);
-    } catch { setError("Failed to create question."); }
+    } catch { setError("Không thể tạo câu hỏi."); }
     finally { setSaving(false); }
   };
 
@@ -554,21 +555,21 @@ function QuestionsAdmin() {
       await adminApi.deleteQuestion(id);
       setItems((prev) => prev.filter((q) => q.id !== id));
       setSelected(null);
-    } catch { setError("Failed to delete question."); }
+    } catch { setError("Không thể xóa câu hỏi."); }
   };
 
   return (
     <div className="h-full flex flex-col">
       {selected && (
         <Modal onClose={() => { setSelected(null); setEditing(false); }}>
-          <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Question detail</p>
+          <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Chi tiết câu hỏi</p>
           {editing ? (
             <div className="mt-2 space-y-3">
-              <Field label="Prompt" value={editPrompt} onChange={setEditPrompt} />
+              <Field label="Câu hỏi" value={editPrompt} onChange={setEditPrompt} />
               {editChoices.map((c, i) => (
                 <div key={i}>
                   <label className="block italic text-[#7a6a45] mb-1">
-                    Choice {String.fromCharCode(65 + i)} {i === editCorrectIndex && "✓"}
+                    Lựa chọn {String.fromCharCode(65 + i)} {i === editCorrectIndex && "✓"}
                   </label>
                   <input value={c}
                     onChange={(e) => setEditChoices((prev) => prev.map((v, idx) => idx === i ? e.target.value : v))}
@@ -576,7 +577,7 @@ function QuestionsAdmin() {
                 </div>
               ))}
               <div>
-                <label className="block italic text-[#7a6a45] mb-1">Correct answer</label>
+                <label className="block italic text-[#7a6a45] mb-1">Đáp án đúng</label>
                 <select value={editCorrectIndex} onChange={(e) => setEditCorrectIndex(Number(e.target.value))}
                   className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
                   {editChoices.map((_, i) => <option key={i} value={i}>{String.fromCharCode(65 + i)}</option>)}
@@ -584,8 +585,8 @@ function QuestionsAdmin() {
               </div>
               {error && <p className="italic text-[#8a4438]" style={{ fontSize: "0.85rem" }}>{error}</p>}
               <div className="flex gap-3 mt-4">
-                <Button onClick={saveEdit} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
-                <Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+                <Button onClick={saveEdit} disabled={saving}>{saving ? "Đang lưu…" : "Lưu"}</Button>
+                <Button variant="outline" onClick={() => setEditing(false)}>Hủy</Button>
               </div>
             </div>
           ) : (
@@ -600,7 +601,7 @@ function QuestionsAdmin() {
               </ul>
               {selected.explanation && <p className="mt-4 italic text-[#5e5132]">{selected.explanation}</p>}
               <div className="mt-6 border-t border-[#e5dabc] pt-4 flex gap-3">
-                <Button onClick={() => openEdit(selected)}>Edit</Button>
+                <Button onClick={() => openEdit(selected)}>Chỉnh sửa</Button>
               </div>
             </>
           )}
@@ -610,12 +611,12 @@ function QuestionsAdmin() {
       <div className="flex gap-6 h-full">
         <div className="w-72 shrink-0">
           <Paper className="p-6">
-            <h3 className="italic mb-4">New Question</h3>
-            <Field label="Prompt" value={prompt} onChange={setPrompt} />
+            <h3 className="italic mb-4">Thêm câu hỏi mới</h3>
+            <Field label="Câu hỏi" value={prompt} onChange={setPrompt} />
             {choices.map((c, i) => (
               <div key={i} className="mb-3">
                 <label className="block italic text-[#7a6a45] mb-1">
-                  Choice {String.fromCharCode(65 + i)} {i === correctIndex && "✓"}
+                  Lựa chọn {String.fromCharCode(65 + i)} {i === correctIndex && "✓"}
                 </label>
                 <input value={c}
                   onChange={(e) => setChoices((prev) => prev.map((v, idx) => idx === i ? e.target.value : v))}
@@ -623,14 +624,14 @@ function QuestionsAdmin() {
               </div>
             ))}
             <div className="mb-3">
-              <label className="block italic text-[#7a6a45] mb-1">Correct answer</label>
+              <label className="block italic text-[#7a6a45] mb-1">Đáp án đúng</label>
               <select value={correctIndex} onChange={(e) => setCorrectIndex(Number(e.target.value))}
                 className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
                 {choices.map((_, i) => <option key={i} value={i}>{String.fromCharCode(65 + i)}</option>)}
               </select>
             </div>
             <div className="mb-3">
-              <label className="block italic text-[#7a6a45] mb-1">Section</label>
+              <label className="block italic text-[#7a6a45] mb-1">Phần</label>
               <select value={section} onChange={(e) => setSection(e.target.value as typeof section)}
                 className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
                 {["vocabulary", "grammar", "reading"].map((s) => <option key={s} value={s}>{s}</option>)}
@@ -645,13 +646,13 @@ function QuestionsAdmin() {
             </div>
             {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
             <Button onClick={create} disabled={saving || !prompt || choices.some((c) => !c)}>
-              {saving ? "Saving…" : "Add question"}
+              {saving ? "Đang lưu…" : "Thêm câu hỏi"}
             </Button>
           </Paper>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
+          {loading && <p className="italic text-[#7a6a45]">Đang tải…</p>}
           <div className="space-y-3">
             {items.map((q) => (
               <button key={q.id} onClick={() => { setSelected(q); setEditing(false); }} className="w-full text-left">
@@ -660,11 +661,11 @@ function QuestionsAdmin() {
                     <div className="flex-1 min-w-0">
                       <p className="line-clamp-2">{q.prompt}</p>
                       <p className="italic text-[#7a6a45] mt-1" style={{ fontSize: "0.85rem" }}>
-                        Answer: {q.choices[q.correct_index]}
+                        Đáp án: {q.choices[q.correct_index]}
                       </p>
                     </div>
                     <div onClick={(e) => e.stopPropagation()}>
-                      <Button variant="outline" onClick={() => remove(q.id)}>Delete</Button>
+                      <Button variant="outline" onClick={() => remove(q.id)}>Xóa</Button>
                     </div>
                   </div>
                 </Paper>
@@ -704,7 +705,7 @@ function ParagraphsAdmin() {
     setLoading(true);
     adminApi.listParagraphs(PAGE_SIZE, o)
       .then((res) => { setItems(res.items ?? []); setTotal(res.total); setOffset(o); })
-      .catch(() => setError("Could not load paragraphs."))
+      .catch(() => setError("Không thể tải đoạn văn."))
       .finally(() => setLoading(false));
   };
 
@@ -724,7 +725,7 @@ function ParagraphsAdmin() {
       });
       setItems((prev) => prev.map((p) => p.id === updated.id ? updated : p));
       setSelected(updated); setEditing(false);
-    } catch { setError("Failed to save changes."); }
+    } catch { setError("Không thể lưu thay đổi."); }
     finally { setSaving(false); }
   };
 
@@ -751,7 +752,7 @@ function ParagraphsAdmin() {
       setSelected(updated);
       setQPrompt(""); setQChoices(["", "", "", ""]); setQCorrect(0);
       setAddingQuestion(false);
-    } catch { setError("Failed to add question."); }
+    } catch { setError("Không thể thêm câu hỏi."); }
     finally { setSaving(false); }
   };
 
@@ -762,7 +763,7 @@ function ParagraphsAdmin() {
       const p = await adminApi.createParagraph({ jlpt, title, content, tags: [], questions: [] });
       setItems((prev) => [p, ...prev]);
       setTitle(""); setContent("");
-    } catch { setError("Failed to create paragraph."); }
+    } catch { setError("Không thể tạo đoạn văn."); }
     finally { setSaving(false); }
   };
 
@@ -771,19 +772,19 @@ function ParagraphsAdmin() {
       await adminApi.deleteParagraph(id);
       setItems((prev) => prev.filter((p) => p.id !== id));
       setSelected(null);
-    } catch { setError("Failed to delete paragraph."); }
+    } catch { setError("Không thể xóa đoạn văn."); }
   };
 
   return (
     <div className="h-full flex flex-col">
       {selected && (
         <Modal onClose={() => { setSelected(null); setEditing(false); setAddingQuestion(false); }}>
-          <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Paragraph detail</p>
+          <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Chi tiết đoạn văn</p>
           {editing ? (
             <div className="mt-2 space-y-3">
-              <Field label="Title" value={editTitle} onChange={setEditTitle} />
+              <Field label="Tiêu đề" value={editTitle} onChange={setEditTitle} />
               <div>
-                <label className="block italic text-[#7a6a45] mb-1">Content</label>
+                <label className="block italic text-[#7a6a45] mb-1">Nội dung</label>
                 <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={6}
                   className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14] resize-none" />
               </div>
@@ -796,18 +797,18 @@ function ParagraphsAdmin() {
               </div>
               {error && <p className="italic text-[#8a4438]" style={{ fontSize: "0.85rem" }}>{error}</p>}
               <div className="flex gap-3 mt-4">
-                <Button onClick={saveEdit} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
-                <Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+                <Button onClick={saveEdit} disabled={saving}>{saving ? "Đang lưu…" : "Lưu"}</Button>
+                <Button variant="outline" onClick={() => setEditing(false)}>Hủy</Button>
               </div>
             </div>
           ) : addingQuestion ? (
             <div className="mt-2 space-y-3">
-              <p className="italic text-[#7a6a45]" style={{ fontSize: "0.85rem" }}>New question for "{selected.title}"</p>
-              <Field label="Prompt" value={qPrompt} onChange={setQPrompt} />
+              <p className="italic text-[#7a6a45]" style={{ fontSize: "0.85rem" }}>Câu hỏi mới cho "{selected.title}"</p>
+              <Field label="Câu hỏi" value={qPrompt} onChange={setQPrompt} />
               {qChoices.map((c, i) => (
                 <div key={i}>
                   <label className="block italic text-[#7a6a45] mb-1">
-                    Choice {String.fromCharCode(65 + i)} {i === qCorrect && "✓"}
+                    Lựa chọn {String.fromCharCode(65 + i)} {i === qCorrect && "✓"}
                   </label>
                   <input value={c}
                     onChange={(e) => setQChoices((prev) => prev.map((v, idx) => idx === i ? e.target.value : v))}
@@ -815,7 +816,7 @@ function ParagraphsAdmin() {
                 </div>
               ))}
               <div>
-                <label className="block italic text-[#7a6a45] mb-1">Correct answer</label>
+                <label className="block italic text-[#7a6a45] mb-1">Đáp án đúng</label>
                 <select value={qCorrect} onChange={(e) => setQCorrect(Number(e.target.value))}
                   className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
                   {qChoices.map((_, i) => <option key={i} value={i}>{String.fromCharCode(65 + i)}</option>)}
@@ -824,9 +825,9 @@ function ParagraphsAdmin() {
               {error && <p className="italic text-[#8a4438]" style={{ fontSize: "0.85rem" }}>{error}</p>}
               <div className="flex gap-3 mt-4">
                 <Button onClick={addQuestion} disabled={saving || !qPrompt || qChoices.some((c) => !c)}>
-                  {saving ? "Saving…" : "Add question"}
+                  {saving ? "Đang lưu…" : "Thêm câu hỏi"}
                 </Button>
-                <Button variant="outline" onClick={() => setAddingQuestion(false)}>Cancel</Button>
+                <Button variant="outline" onClick={() => setAddingQuestion(false)}>Hủy</Button>
               </div>
             </div>
           ) : (
@@ -841,15 +842,15 @@ function ParagraphsAdmin() {
               <p className="mt-4 text-[#3a2f22] leading-relaxed" style={{ whiteSpace: "pre-wrap" }}>{selected.content}</p>
               {selected.questions.length > 0 && (
                 <div className="mt-4 border-t border-[#e5dabc] pt-4">
-                  <p className="italic text-[#7a6a45] mb-2" style={{ fontSize: "0.85rem" }}>{selected.questions.length} question(s)</p>
+                  <p className="italic text-[#7a6a45] mb-2" style={{ fontSize: "0.85rem" }}>{selected.questions.length} câu hỏi</p>
                   {selected.questions.map((q, i) => (
                     <p key={i} className="text-[#5e5132] mb-1" style={{ fontSize: "0.9rem" }}>{i + 1}. {q.prompt}</p>
                   ))}
                 </div>
               )}
               <div className="mt-6 border-t border-[#e5dabc] pt-4 flex gap-3">
-                <Button onClick={() => openEdit(selected)}>Edit</Button>
-                <Button variant="outline" onClick={() => setAddingQuestion(true)}>+ Question</Button>
+                <Button onClick={() => openEdit(selected)}>Chỉnh sửa</Button>
+                <Button variant="outline" onClick={() => setAddingQuestion(true)}>+ Câu hỏi</Button>
               </div>
             </>
           )}
@@ -859,10 +860,10 @@ function ParagraphsAdmin() {
       <div className="flex gap-6 h-full">
         <div className="w-72 shrink-0">
           <Paper className="p-6">
-            <h3 className="italic mb-4">New Paragraph</h3>
-            <Field label="Title" value={title} onChange={setTitle} />
+            <h3 className="italic mb-4">Thêm đoạn văn mới</h3>
+            <Field label="Tiêu đề" value={title} onChange={setTitle} />
             <div className="mb-4">
-              <label className="block italic text-[#7a6a45] mb-1">Content</label>
+              <label className="block italic text-[#7a6a45] mb-1">Nội dung</label>
               <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={5}
                 className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2 outline-none focus:border-[#1f1a14] resize-none" />
             </div>
@@ -875,13 +876,13 @@ function ParagraphsAdmin() {
             </div>
             {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
             <Button onClick={create} disabled={saving || !title || content.length < 10}>
-              {saving ? "Saving…" : "Create paragraph"}
+              {saving ? "Đang lưu…" : "Tạo đoạn văn"}
             </Button>
           </Paper>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {loading && <p className="italic text-[#7a6a45]">Loading…</p>}
+          {loading && <p className="italic text-[#7a6a45]">Đang tải…</p>}
           <div className="space-y-3">
             {items.map((p) => (
               <button key={p.id} onClick={() => { setSelected(p); setEditing(false); setAddingQuestion(false); }} className="w-full text-left">
@@ -889,12 +890,12 @@ function ParagraphsAdmin() {
                   <div className="flex justify-between items-center">
                     <p style={{ fontSize: "1.1rem" }}>{p.title}</p>
                     <div onClick={(e) => e.stopPropagation()}>
-                      <Button variant="outline" onClick={() => remove(p.id)}>Delete</Button>
+                      <Button variant="outline" onClick={() => remove(p.id)}>Xóa</Button>
                     </div>
                   </div>
                   <p className="text-[#5e5132] mt-1 line-clamp-2" style={{ fontSize: "0.9rem" }}>{p.content}</p>
                   {p.questions.length > 0 && (
-                    <p className="italic text-[#a89770] mt-1" style={{ fontSize: "0.8rem" }}>{p.questions.length} question(s)</p>
+                    <p className="italic text-[#a89770] mt-1" style={{ fontSize: "0.8rem" }}>{p.questions.length} câu hỏi</p>
                   )}
                 </Paper>
               </button>
@@ -979,14 +980,14 @@ function KanjiFields({ values, onChange }: { values: KanjiEntry[]; onChange: (v:
         {values.map((k, i) => (
           <div key={i} className="border border-[#d9cfb8] p-2 space-y-1">
             <div className="flex gap-1">
-              <input value={k.text} placeholder="text" onChange={(e) => update(i, "text", e.target.value)}
+              <input value={k.text} placeholder="kanji" onChange={(e) => update(i, "text", e.target.value)}
                 className="flex-1 bg-[#fbf8f1] border border-[#d9cfb8] px-2 py-1 outline-none focus:border-[#1f1a14]" />
               {values.length > 1 && (
                 <button onClick={() => onChange(values.filter((_, idx) => idx !== i))}
                   className="px-2 text-[#a89770] hover:text-[#8a4438]">×</button>
               )}
             </div>
-            <input value={k.info} placeholder="info (optional)" onChange={(e) => update(i, "info", e.target.value)}
+            <input value={k.info} placeholder="thông tin (tuỳ chọn)" onChange={(e) => update(i, "info", e.target.value)}
               className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-2 py-1 outline-none focus:border-[#1f1a14]"
               style={{ fontSize: "0.85rem" }} />
           </div>
@@ -1002,7 +1003,7 @@ function SenseFields({ values, onChange }: { values: SenseEntry[]; onChange: (v:
   return (
     <div className="mb-4">
       <div className="flex items-center justify-between mb-1">
-        <label className="italic text-[#7a6a45]">Meanings</label>
+        <label className="italic text-[#7a6a45]">Nghĩa</label>
         <button onClick={() => onChange([...values, emptySense()])}
           className="text-[#7a6a45] hover:text-[#1f1a14] px-1" style={{ fontSize: "1.1rem" }}>+</button>
       </div>
@@ -1010,7 +1011,7 @@ function SenseFields({ values, onChange }: { values: SenseEntry[]; onChange: (v:
         {values.map((s, i) => (
           <div key={i} className="border border-[#d9cfb8] p-2 space-y-1">
             <div className="flex gap-1">
-              <input value={s.gloss} placeholder="meaning (en)" onChange={(e) => update(i, "gloss", e.target.value)}
+              <input value={s.gloss} placeholder="nghĩa (tiếng Anh)" onChange={(e) => update(i, "gloss", e.target.value)}
                 className="flex-1 bg-[#fbf8f1] border border-[#d9cfb8] px-2 py-1 outline-none focus:border-[#1f1a14]" />
               {values.length > 1 && (
                 <button onClick={() => onChange(values.filter((_, idx) => idx !== i))}
