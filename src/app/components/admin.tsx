@@ -964,7 +964,7 @@ function MultiField({ label, values, onChange }: { label: string; values: string
   );
 }
 
-const POS_OPTIONS = ["noun", "verb (godan)", "verb (ichidan)", "い-adjective", "な-adjective", "adverb", "particle", "conjunction", "expression", "other"];
+const POS_OPTIONS = ["danh từ", "động từ nhóm 1", "động từ nhóm 2/3", "tính từ đuôi い", "tính từ đuôi な", "phó từ", "giới từ", "liên từ", "cụm từ", "khác"];
 
 function KanjiFields({ values, onChange }: { values: KanjiEntry[]; onChange: (v: KanjiEntry[]) => void }) {
   const update = (i: number, field: keyof KanjiEntry, val: string) =>
