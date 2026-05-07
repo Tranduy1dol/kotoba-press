@@ -79,6 +79,25 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 
 // ── Words ─────────────────────────────────────────────────────────────────────
 
+type KanjiEntry = { text: string; info: string };
+type SenseEntry = { gloss: string; pos: string };
+
+const emptyKanji = (): KanjiEntry => ({ text: "", info: "" });
+const emptySense = (): SenseEntry => ({ gloss: "", pos: "noun" });
+
+function JlptSelect({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="mb-4">
+      <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
+      <select value={value} onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
+        <option value={0}>-- select --</option>
+        {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
+      </select>
+    </div>
+  );
+}
+
 function WordsAdmin() {
   const [items, setItems] = useState<WordResponse[]>([]);
   const [total, setTotal] = useState(0);
@@ -86,15 +105,15 @@ function WordsAdmin() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<WordResponse | null>(null);
   const [editing, setEditing] = useState(false);
-  const [editKanjis, setEditKanjis] = useState<string[]>([""]);
+  const [editKanjis, setEditKanjis] = useState<KanjiEntry[]>([emptyKanji()]);
   const [editReadings, setEditReadings] = useState<string[]>([""]);
-  const [editSenses, setEditSenses] = useState<string[]>([""]);
-  const [editJlpt, setEditJlpt] = useState(5);
+  const [editSenses, setEditSenses] = useState<SenseEntry[]>([emptySense()]);
+  const [editJlpt, setEditJlpt] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [kanjis, setKanjis] = useState<string[]>([""]);
+  const [kanjis, setKanjis] = useState<KanjiEntry[]>([emptyKanji()]);
   const [readings, setReadings] = useState<string[]>([""]);
-  const [senses, setSenses] = useState<string[]>([""]);
-  const [jlpt, setJlpt] = useState(5);
+  const [senses, setSenses] = useState<SenseEntry[]>([emptySense()]);
+  const [jlpt, setJlpt] = useState(0);
   const [error, setError] = useState("");
 
   const load = (o: number) => {
@@ -108,9 +127,9 @@ function WordsAdmin() {
   useEffect(() => { load(0); }, []);
 
   const openEdit = (w: WordResponse) => {
-    setEditKanjis(w.kanji.map((k) => k.text).filter(Boolean) || [""]);
-    setEditReadings(w.readings.map((r) => r.text).filter(Boolean) || [""]);
-    setEditSenses(w.sense.map((s) => s.gloss[0]?.text ?? "").filter(Boolean) || [""]);
+    setEditKanjis(w.kanji.length > 0 ? w.kanji.map((k) => ({ text: k.text, info: k.info ?? "" })) : [emptyKanji()]);
+    setEditReadings(w.readings.length > 0 ? w.readings.map((r) => r.text) : [""]);
+    setEditSenses(w.sense.length > 0 ? w.sense.map((s) => ({ gloss: s.gloss[0]?.text ?? "", pos: s.pos[0] ?? "noun" })) : [emptySense()]);
     setEditJlpt(w.jlpt);
     setEditing(true);
   };
@@ -120,12 +139,12 @@ function WordsAdmin() {
     setSaving(true); setError("");
     try {
       const updated = await adminApi.updateWord(selected.id, {
-        jlpt: editJlpt,
-        kanji: editKanjis.filter(Boolean).map((t) => ({ text: t })),
+        ...(editJlpt > 0 ? { jlpt: editJlpt } : {}),
+        kanji: editKanjis.filter((k) => k.text).map((k) => ({ text: k.text, info: k.info })),
         readings: editReadings.filter(Boolean).map((t) => ({ text: t })),
-        senses: editSenses.filter(Boolean).map((t, i) => ({
-          gloss: [{ lang: "en", text: t }],
-          pos: selected.sense[i]?.pos ?? selected.sense[0]?.pos ?? ["n"],
+        senses: editSenses.filter((s) => s.gloss).map((s) => ({
+          gloss: [{ lang: "en", text: s.gloss }],
+          pos: [s.pos],
         })),
       });
       setItems((prev) => prev.map((w) => w.id === updated.id ? updated : w));
@@ -136,17 +155,20 @@ function WordsAdmin() {
   };
 
   const create = async () => {
-    if (!kanjis[0] || !readings[0]) return;
+    if (!kanjis[0]?.text || !readings[0]) return;
     setSaving(true); setError("");
     try {
       const w = await adminApi.createWord({
-        jlpt,
-        kanji: kanjis.filter(Boolean).map((t) => ({ text: t })),
+        ...(jlpt > 0 ? { jlpt } : {}),
+        kanji: kanjis.filter((k) => k.text).map((k) => ({ text: k.text, info: k.info })),
         readings: readings.filter(Boolean).map((t) => ({ text: t })),
-        senses: senses.filter(Boolean).map((t) => ({ gloss: [{ lang: "en", text: t }], pos: ["n"] })),
+        senses: senses.filter((s) => s.gloss).map((s) => ({
+          gloss: [{ lang: "en", text: s.gloss }],
+          pos: [s.pos],
+        })),
       });
       setItems((prev) => [w, ...prev]);
-      setKanjis([""]); setReadings([""]); setSenses([""]);
+      setKanjis([emptyKanji()]); setReadings([""]); setSenses([emptySense()]); setJlpt(0);
     } catch { setError("Failed to create word."); }
     finally { setSaving(false); }
   };
@@ -165,19 +187,13 @@ function WordsAdmin() {
         <Modal onClose={() => { setSelected(null); setEditing(false); }}>
           <p className="italic text-[#7a6a45] mb-1" style={{ fontSize: "0.85rem" }}>Word detail</p>
           {editing ? (
-            <div className="mt-2 space-y-3">
-              <MultiField label="Kanji" values={editKanjis} onChange={setEditKanjis} />
+            <div className="mt-2 space-y-4">
+              <KanjiFields values={editKanjis} onChange={setEditKanjis} />
               <MultiField label="Readings" values={editReadings} onChange={setEditReadings} />
-              <MultiField label="Meanings (en)" values={editSenses} onChange={setEditSenses} />
-              <div>
-                <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
-                <select value={editJlpt} onChange={(e) => setEditJlpt(Number(e.target.value))}
-                  className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
-                  {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
-                </select>
-              </div>
+              <SenseFields values={editSenses} onChange={setEditSenses} />
+              <JlptSelect value={editJlpt} onChange={setEditJlpt} />
               {error && <p className="italic text-[#8a4438]" style={{ fontSize: "0.85rem" }}>{error}</p>}
-              <div className="flex gap-3 mt-4">
+              <div className="flex gap-3">
                 <Button onClick={saveEdit} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
                 <Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
               </div>
@@ -210,18 +226,12 @@ function WordsAdmin() {
         <div className="w-72 shrink-0">
           <Paper className="p-6">
             <h3 className="italic mb-4">New Word</h3>
-            <MultiField label="Kanji" values={kanjis} onChange={setKanjis} />
+            <KanjiFields values={kanjis} onChange={setKanjis} />
             <MultiField label="Readings" values={readings} onChange={setReadings} />
-            <MultiField label="Meanings (en)" values={senses} onChange={setSenses} />
-            <div className="mb-4">
-              <label className="block italic text-[#7a6a45] mb-1">JLPT</label>
-              <select value={jlpt} onChange={(e) => setJlpt(Number(e.target.value))}
-                className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-3 py-2">
-                {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>N{n}</option>)}
-              </select>
-            </div>
+            <SenseFields values={senses} onChange={setSenses} />
+            <JlptSelect value={jlpt} onChange={setJlpt} />
             {error && <p className="italic text-[#8a4438] mb-3" style={{ fontSize: "0.85rem" }}>{error}</p>}
-            <Button onClick={create} className="w-full" disabled={saving || !kanjis[0] || !readings[0]}>
+            <Button onClick={create} className="w-full" disabled={saving || !kanjis[0]?.text || !readings[0]}>
               {saving ? "Saving…" : "Add to corpus"}
             </Button>
           </Paper>
@@ -946,6 +956,71 @@ function MultiField({ label, values, onChange }: { label: string; values: string
             {values.length > 1 && (
               <button onClick={() => remove(i)} className="px-2 text-[#a89770] hover:text-[#8a4438]">×</button>
             )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const POS_OPTIONS = ["noun", "verb (godan)", "verb (ichidan)", "い-adjective", "な-adjective", "adverb", "particle", "conjunction", "expression", "other"];
+
+function KanjiFields({ values, onChange }: { values: KanjiEntry[]; onChange: (v: KanjiEntry[]) => void }) {
+  const update = (i: number, field: keyof KanjiEntry, val: string) =>
+    onChange(values.map((k, idx) => idx === i ? { ...k, [field]: val } : k));
+  return (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-1">
+        <label className="italic text-[#7a6a45]">Kanji</label>
+        <button onClick={() => onChange([...values, emptyKanji()])}
+          className="text-[#7a6a45] hover:text-[#1f1a14] px-1" style={{ fontSize: "1.1rem" }}>+</button>
+      </div>
+      <div className="space-y-2">
+        {values.map((k, i) => (
+          <div key={i} className="border border-[#d9cfb8] p-2 space-y-1">
+            <div className="flex gap-1">
+              <input value={k.text} placeholder="text" onChange={(e) => update(i, "text", e.target.value)}
+                className="flex-1 bg-[#fbf8f1] border border-[#d9cfb8] px-2 py-1 outline-none focus:border-[#1f1a14]" />
+              {values.length > 1 && (
+                <button onClick={() => onChange(values.filter((_, idx) => idx !== i))}
+                  className="px-2 text-[#a89770] hover:text-[#8a4438]">×</button>
+              )}
+            </div>
+            <input value={k.info} placeholder="info (optional)" onChange={(e) => update(i, "info", e.target.value)}
+              className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-2 py-1 outline-none focus:border-[#1f1a14]"
+              style={{ fontSize: "0.85rem" }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SenseFields({ values, onChange }: { values: SenseEntry[]; onChange: (v: SenseEntry[]) => void }) {
+  const update = (i: number, field: keyof SenseEntry, val: string) =>
+    onChange(values.map((s, idx) => idx === i ? { ...s, [field]: val } : s));
+  return (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-1">
+        <label className="italic text-[#7a6a45]">Meanings</label>
+        <button onClick={() => onChange([...values, emptySense()])}
+          className="text-[#7a6a45] hover:text-[#1f1a14] px-1" style={{ fontSize: "1.1rem" }}>+</button>
+      </div>
+      <div className="space-y-2">
+        {values.map((s, i) => (
+          <div key={i} className="border border-[#d9cfb8] p-2 space-y-1">
+            <div className="flex gap-1">
+              <input value={s.gloss} placeholder="meaning (en)" onChange={(e) => update(i, "gloss", e.target.value)}
+                className="flex-1 bg-[#fbf8f1] border border-[#d9cfb8] px-2 py-1 outline-none focus:border-[#1f1a14]" />
+              {values.length > 1 && (
+                <button onClick={() => onChange(values.filter((_, idx) => idx !== i))}
+                  className="px-2 text-[#a89770] hover:text-[#8a4438]">×</button>
+              )}
+            </div>
+            <select value={s.pos} onChange={(e) => update(i, "pos", e.target.value)}
+              className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-2 py-1" style={{ fontSize: "0.85rem" }}>
+              {POS_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
           </div>
         ))}
       </div>
