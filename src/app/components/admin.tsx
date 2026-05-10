@@ -83,7 +83,7 @@ type KanjiEntry = { text: string; info: string };
 type SenseEntry = { gloss: string; pos: string };
 
 const emptyKanji = (): KanjiEntry => ({ text: "", info: "" });
-const emptySense = (): SenseEntry => ({ gloss: "", pos: "noun" });
+const emptySense = (): SenseEntry => ({ gloss: "", pos: "" });
 
 function JlptSelect({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
@@ -129,7 +129,7 @@ function WordsAdmin() {
   const openEdit = (w: WordResponse) => {
     setEditKanjis(w.kanji.length > 0 ? w.kanji.map((k) => ({ text: k.text, info: k.info ?? "" })) : [emptyKanji()]);
     setEditReadings(w.readings.length > 0 ? w.readings.map((r) => r.text) : [""]);
-    setEditSenses(w.sense.length > 0 ? w.sense.map((s) => ({ gloss: s.gloss[0]?.text ?? "", pos: s.pos[0] ?? "noun" })) : [emptySense()]);
+    setEditSenses(w.sense.length > 0 ? w.sense.map((s) => ({ gloss: s.gloss[0]?.text ?? "", pos: s.pos[0] ?? "" })) : [emptySense()]);
     setEditJlpt(w.jlpt);
     setEditing(true);
   };
@@ -144,7 +144,7 @@ function WordsAdmin() {
         readings: editReadings.filter(Boolean).map((t) => ({ text: t })),
         senses: editSenses.filter((s) => s.gloss).map((s) => ({
           gloss: [{ lang: "en", text: s.gloss }],
-          pos: [s.pos],
+          pos: s.pos ? [s.pos] : [],
         })),
       });
       setItems((prev) => prev.map((w) => w.id === updated.id ? updated : w));
@@ -164,7 +164,7 @@ function WordsAdmin() {
         readings: readings.filter(Boolean).map((t) => ({ text: t })),
         senses: senses.filter((s) => s.gloss).map((s) => ({
           gloss: [{ lang: "en", text: s.gloss }],
-          pos: [s.pos],
+          pos: s.pos ? [s.pos] : [],
         })),
       });
       setItems((prev) => [w, ...prev]);
@@ -200,8 +200,15 @@ function WordsAdmin() {
             </div>
           ) : (
             <>
-              <p style={{ fontSize: "2.5rem", lineHeight: 1.1 }}>{selected.kanji[0]?.text}</p>
-              <p className="italic text-[#5e5132] mt-1">{selected.readings[0]?.text}</p>
+              <div className="space-y-1">
+                {selected.kanji.map((k, i) => (
+                  <div key={i}>
+                    <p style={{ fontSize: "2.5rem", lineHeight: 1.1 }}>{k.text}</p>
+                    {k.info && <p className="italic text-[#a89770]" style={{ fontSize: "0.85rem" }}>{k.info}</p>}
+                  </div>
+                ))}
+              </div>
+              <p className="italic text-[#5e5132] mt-1">{selected.readings.map((r) => r.text).join("、")}</p>
               <div className="flex gap-2 mt-3">
                 <Tag>N{selected.jlpt}</Tag>
                 {selected.is_common && <Tag>phổ biến</Tag>}
@@ -964,7 +971,7 @@ function MultiField({ label, values, onChange }: { label: string; values: string
   );
 }
 
-const POS_OPTIONS = ["danh từ", "động từ nhóm 1", "động từ nhóm 2/3", "tính từ đuôi い", "tính từ đuôi な", "phó từ", "giới từ", "liên từ", "cụm từ", "khác"];
+const POS_OPTIONS = ["Danh từ", "Động từ nhóm 1", "Động từ nhóm 2/3", "Tính từ đuôi い", "Tính từ đuôi な", "Phó từ", "Giới từ", "Liên từ", "Cụm từ", "Khác"];
 
 function KanjiFields({ values, onChange }: { values: KanjiEntry[]; onChange: (v: KanjiEntry[]) => void }) {
   const update = (i: number, field: keyof KanjiEntry, val: string) =>
@@ -1020,6 +1027,7 @@ function SenseFields({ values, onChange }: { values: SenseEntry[]; onChange: (v:
             </div>
             <select value={s.pos} onChange={(e) => update(i, "pos", e.target.value)}
               className="w-full bg-[#fbf8f1] border border-[#d9cfb8] px-2 py-1" style={{ fontSize: "0.85rem" }}>
+              <option value="">-- select --</option>
               {POS_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
