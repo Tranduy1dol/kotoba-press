@@ -159,6 +159,9 @@ export const srs = {
   dueCount: () =>
     request<{ count: number }>("/srs/due/count"),
 
+  newWords: (level: number, limit = 20) =>
+    request<WordResponse[]>(`/srs/new/${level}?limit=${limit}`),
+
   addToDeck: (word_id: string) =>
     request<SRSCardResponse>("/srs/deck", { method: "POST", body: JSON.stringify({ word_id }) }),
 
