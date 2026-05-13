@@ -89,8 +89,10 @@ function SRSMode({ onExit }: { onExit: () => void }) {
   const [stats, setStats] = useState({ again: 0, good: 0, easy: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showNewWords, setShowNewWords] = useState(false);
 
-  useEffect(() => {
+  const loadDue = () => {
+    setLoading(true);
     srsApi.due(20)
       .then(async (due) => {
         setCards(due);
@@ -101,16 +103,26 @@ function SRSMode({ onExit }: { onExit: () => void }) {
       })
       .catch(() => setError("Could not load your deck. Please try again."))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadDue(); }, []);
 
   if (loading) return <LoadingState title="Flashcards" onExit={onExit} />;
   if (error) return <ErrorState msg={error} onExit={onExit} />;
+
+  if (showNewWords) {
+    return <NewWordsMode onExit={() => setShowNewWords(false)} onAdded={loadDue} />;
+  }
+
   if (cards.length === 0) {
     return (
       <div className="max-w-3xl mx-auto">
         <ModeHeader title="Flashcards" sub="All caught up" onExit={onExit} />
-        <Paper className="p-12 text-center italic text-[#7a6a45]">
-          No cards due for review. Come back tomorrow.
+        <Paper className="p-12 text-center">
+          <p className="italic text-[#7a6a45]">No cards due for review.</p>
+          <div className="mt-6">
+            <Button onClick={() => setShowNewWords(true)}>Learn new words</Button>
+          </div>
         </Paper>
       </div>
     );
@@ -169,6 +181,96 @@ function SRSMode({ onExit }: { onExit: () => void }) {
         <span>Good · {stats.good}</span>
         <span>Easy · {stats.easy}</span>
       </div>
+    </div>
+  );
+}
+
+// New words mode — browse words not in deck, add them
+function NewWordsMode({ onExit, onAdded }: { onExit: () => void; onAdded: () => void }) {
+  const [level, setLevel] = useState(5);
+  const [words, setWords] = useState<WordResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState<string | null>(null);
+  const [added, setAdded] = useState<Set<string>>(new Set());
+  const [error, setError] = useState("");
+
+  const load = (lv: number) => {
+    setLoading(true);
+    srsApi.newWords(lv, 20)
+      .then((res) => { setWords(res); setAdded(new Set()); })
+      .catch(() => setError("Could not load new words."))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(level); }, [level]);
+
+  const addWord = async (wordId: string) => {
+    setAdding(wordId);
+    try {
+      await srsApi.addToDeck(wordId);
+      setAdded((s) => new Set(s).add(wordId));
+    } catch { setError("Could not add word to deck."); }
+    finally { setAdding(null); }
+  };
+
+  const done = () => {
+    if (added.size > 0) onAdded();
+    onExit();
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto">
+      <ModeHeader title="Learn New Words" sub={`${added.size} added to deck`} onExit={done} />
+
+      <Paper className="p-4 mb-6">
+        <div className="flex items-center gap-3">
+          <span className="italic text-[#7a6a45]">Level</span>
+          <div className="flex gap-2">
+            {[5, 4, 3, 2, 1].map((lv) => (
+              <button key={lv} onClick={() => setLevel(lv)}
+                className={`px-3 py-1 border italic ${level === lv ? "bg-[#1f1a14] text-[#fbf8f1] border-[#1f1a14]" : "border-[#d9cfb8] hover:bg-[#efe6cf]"}`}>
+                N{lv}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Paper>
+
+      {error && <p className="italic text-[#8a4438] mb-4">{error}</p>}
+      {loading ? (
+        <Paper className="p-12 text-center italic text-[#7a6a45]">Loading…</Paper>
+      ) : words.length === 0 ? (
+        <Paper className="p-12 text-center italic text-[#7a6a45]">
+          All N{level} words are already in your deck.
+        </Paper>
+      ) : (
+        <div className="space-y-3">
+          {words.map((w) => (
+            <Paper key={w.id} className="p-4 flex items-center justify-between">
+              <div>
+                <p style={{ fontSize: "1.4rem" }}>
+                  {w.kanji[0]?.text}
+                  <span className="italic text-[#7a6a45] ml-2" style={{ fontSize: "1rem" }}>{w.readings[0]?.text}</span>
+                </p>
+                <p className="text-[#5e5132]">{w.sense[0]?.gloss[0]?.text}</p>
+              </div>
+              {added.has(w.id) ? (
+                <Tag>Added</Tag>
+              ) : (
+                <Button variant="outline" onClick={() => addWord(w.id)} disabled={adding === w.id}>
+                  {adding === w.id ? "…" : "+ Add"}
+                </Button>
+              )}
+            </Paper>
+          ))}
+        </div>
+      )}
+
+      {added.size > 0 && (
+        <div className="mt-6 flex justify-end">
+          <Button onClick={done}>Start reviewing ({added.size})</Button>
+        </div>
+      )}
     </div>
   );
 }
