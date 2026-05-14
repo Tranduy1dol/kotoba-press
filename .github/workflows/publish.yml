@@ -38,6 +38,6 @@ jobs:
       - uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.DEPLOY_PAT }}
-          repository: Tranduy1dol/kotoba-press-deployr
+          repository: Tranduy1dol/kotoba-press-deployer
           event-type: image-updated
           client-payload: '{"service": "kotoba-ui", "tag": "${{ github.sha }}"}'
